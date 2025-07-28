@@ -1,0 +1,30 @@
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.EntityFrameworkCore;
+using BankApplication.Data;
+using BankApplication.Services.IServices;
+using BankApplication.Services;
+using BankApplication.Helpers;
+
+namespace BankApplication
+{
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            using IHost host = Host.CreateDefaultBuilder(args)
+                .ConfigureServices((context, services) =>
+                {
+                    services.AddDbContext<ApplicationDbContext>(options =>
+                        options.UseSqlite("Data Source=bankapp.db"));
+                    services.AddScoped<IAccountService, AccountService>();
+                    services.AddScoped<IBankAccountService, BankAccountService>();
+                    services.AddTransient<App>();
+                })
+                .Build();
+
+            var app = host.Services.GetRequiredService<App>();
+            app.Run();
+        }
+    }
+}
