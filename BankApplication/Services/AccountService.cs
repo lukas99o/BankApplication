@@ -18,11 +18,12 @@ namespace BankApplication.Services
             Console.Clear();
             User? user = null;
             int tries = 3;
+            string? username = "";
 
             while (true)
             {
                 Console.Write("Ange ditt användarnamn: ");
-                string? username = Console.ReadLine();
+                username = Console.ReadLine();
 
                 if (string.IsNullOrEmpty(username))
                 {
@@ -52,9 +53,13 @@ namespace BankApplication.Services
 
         public void Register()
         {
+            Console.Clear();
+            string? username = "";
+
             while (true)
             {
-                string? username = Console.ReadLine();
+                Console.Write("Ange ett användarnamn för registrering: ");
+                username = Console.ReadLine();
 
                 if (string.IsNullOrEmpty(username))
                 {
@@ -77,7 +82,9 @@ namespace BankApplication.Services
                         User newUser = new User { Username = username };
                         _context.Users.Add(newUser);
                         _context.SaveChanges();
-                        Console.WriteLine("Registrering lyckades!");
+                        Console.WriteLine("\nRegistrering lyckades!");
+                        Console.WriteLine("Tryck på valfri tangent för att återgå till menyn...");
+                        Console.ReadKey();
                         return;
                     }
                 }
