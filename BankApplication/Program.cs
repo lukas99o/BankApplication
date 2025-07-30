@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using BankApplication.Data;
 using BankApplication.Services.IServices;
 using BankApplication.Services;
-using BankApplication.Helpers;
 
 namespace BankApplication
 {
@@ -19,6 +18,7 @@ namespace BankApplication
                         options.UseSqlite("Data Source=bankapp.db"));
                     services.AddScoped<IAccountService, AccountService>();
                     services.AddScoped<IBankAccountService, BankAccountService>();
+                    services.AddScoped<IFunService, FunService>();
                     services.AddTransient<App>();
                 })
                 .Build();

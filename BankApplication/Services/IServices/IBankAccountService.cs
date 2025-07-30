@@ -10,9 +10,10 @@ namespace BankApplication.Services.IServices
     {
         void ViewBalance(int userId);
         void Deposit(int userId);
-        void Withdraw(decimal amount);
-        void Transfer(decimal amount, int targetAccountId);
-        void ViewTransactionHistory();
+        void Withdraw(int userId);
+        void Transfer(int userId);
+        void ViewTransactionHistory(int userId);
         void CreateAccount(int userId);
+        void TransferToExternalAccount(int userId);
     }
 }
