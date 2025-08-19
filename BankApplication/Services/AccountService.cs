@@ -1,4 +1,5 @@
 ﻿using BankApplication.Data;
+using BankApplication.Helpers;
 using BankApplication.Models;
 using BankApplication.Services.IServices;
 
@@ -13,79 +14,162 @@ namespace BankApplication.Services
             _context = context;            
         }
 
-        public User? Login()
+        public (User? user, DateTime? lockoutUntil, int tries, int failedAttempts) Login(DateTime? lockoutUntil, int tries, int failedAttempts)
         {
-            Console.Clear();
-            User? user = null;
-            int tries = 3;
-            string? username = "";
+            if (lockoutUntil.HasValue && lockoutUntil.Value > DateTime.Now)
+            {
+                MenuSystem.MenuInput(
+                    new[] { $"Du är låst till {lockoutUntil.Value:T}. Försök igen senare." },
+                    new[] { "Meny" },
+                    ConsoleColor.Red
+                );
+                return (null, lockoutUntil, tries, failedAttempts);
+            }
 
             while (true)
             {
-                Console.Write("Ange ditt användarnamn: ");
-                username = Console.ReadLine();
+                Console.Clear();
+                MenuSystem.CenterY(2);    
 
-                if (string.IsNullOrEmpty(username))
+                MenuSystem.WriteAllCenteredXForeground(
+                    new[] { "Logga in.", "Tryck på [ESC] för att avbryta inloggningen.", "" },
+                    ConsoleColor.Green
+                );
+                MenuSystem.WriteCenteredXForeground("Ange ditt användarnamn: ", ConsoleColor.Yellow, true);
+
+                string? username = MenuSystem.ReadLineWithEscape();
+
+                if (username == null)
                 {
-                    Console.WriteLine("Anändarnamnet kan inte vara tomt.");
-                    continue;
+                    int choice = MenuSystem.MenuInput(new[] { "Inloggning avbröts." }, new[] { "Meny" }, null);
+                    return (null, null, tries, failedAttempts);
                 }
 
-                user = _context.Users.SingleOrDefault(u => u.Username == username);
+                if (string.IsNullOrWhiteSpace(username))
+                {
+                    int choice = MenuSystem.MenuInput(new[] { "Användarnamnet kan inte vara tomt." }, new[] { "Försök igen", "Meny" }, ConsoleColor.Red);
+                    if (choice == 0) continue;
 
-                if (user == null && tries != 0)
-                {
-                    tries--;
-                    Console.WriteLine($"Användarnamnet finns inte. Försök igen. Försök kvar: {tries}.");
-                    continue;
+                    return (null, null, tries, failedAttempts);
                 }
-                else if (tries == 0)
+
+                var user = _context.Users.SingleOrDefault(u => u.Username == username);
+
+                if (user != null)
                 {
-                    Console.WriteLine($"Försök kvar: {tries}. Försök igen senare.");
-                    return null;
+                    tries = 3;
+                    return (user, null, tries, failedAttempts);
                 }
                 else
                 {
-                    return user;
+                    tries--;
+
+                    if (tries == 0)
+                    {
+                        failedAttempts++;
+                        if (failedAttempts > 3) failedAttempts = 3;
+
+                        switch (failedAttempts)
+                        {
+                            case 1:
+                                lockoutUntil = DateTime.Now.AddMinutes(1);
+                                break;
+
+                            case 2:
+                                lockoutUntil = DateTime.Now.AddMinutes(5);
+                                break;
+
+                            case 3:
+                                lockoutUntil = DateTime.Now.AddMinutes(15);
+                                break;
+                        }
+
+                        MenuSystem.MenuInput(
+                            new[] { $"Du skrev fel användarnamn tre gånger. Du är nu låst till {lockoutUntil:T}." },
+                            new[] { "Meny" },
+                            ConsoleColor.Red
+                        );
+
+                        tries = 3;
+                        return (null, lockoutUntil, tries, failedAttempts);
+                    }
+                    else
+                    {
+                        int choice = MenuSystem.MenuInput(
+                            new[] { $"Användarnamnet finns inte. Försök igen. Försök kvar: {tries}." },
+                            new[] { "Försök igen", "Meny" },
+                            ConsoleColor.Red
+                        );
+                        if (choice == 0) continue;
+
+                        return (null, null, tries, failedAttempts);
+                    }
                 }
             }
         }
 
         public void Register()
         {
-            Console.Clear();
-            string? username = "";
-
             while (true)
             {
-                Console.Write("Ange ett användarnamn för registrering: ");
-                username = Console.ReadLine();
+                Console.Clear();
+                MenuSystem.CenterY(2);
+
+                MenuSystem.WriteAllCenteredXForeground(
+                    new[] { "Registrera dig.", "Tryck på [ESC] för att avbryta registreringen.", "" },
+                    ConsoleColor.Green
+                );
+
+                MenuSystem.WriteCenteredXForeground("Ange ett användarnamn: ", ConsoleColor.Yellow, true);
+                string? username = MenuSystem.ReadLineWithEscape();
+
+                MenuSystem.WriteCenteredXForeground("Ange ett lösenord: ", ConsoleColor.Yellow, true);
+                string? password = MenuSystem.ReadLineWithEscape();
 
                 if (string.IsNullOrEmpty(username))
                 {
-                    Console.WriteLine("Användarnamnet kan inte vara tomt.");
+                    int choice = MenuSystem.MenuInput(new[] { "Användarnamnet kan inte vara tomt." }, new[] { "Försök igen" ,"Meny" }, ConsoleColor.Red);
+                    if (choice == 0) continue;
+                    return;
                 }
                 else 
                 {
                     if (username.Length < 3 || username.Length > 20)
                     {
-                        Console.WriteLine("Användarnamnet måste vara mellan 3 och 20 tecken långt.");
-                        continue;
+                        int choice = MenuSystem.MenuInput(new[] { "Användarnamnet måste vara mellan 3 och 20 tecken långt." }, new[] { "Försök igen", "Meny" }, ConsoleColor.Red);
+                        if (choice == 0) continue;
+                        return;
                     }
                     else if (_context.Users.Any(u => u.Username == username))
                     {
-                        Console.WriteLine("Användarnamnet finns redan. Välj ett annat.");
-                        continue;
+                        int choice = MenuSystem.MenuInput(new[] { "Användarnamnet finns redan. Välj ett annat." }, new[] { "Försök igen", "Meny" }, ConsoleColor.Red);
+                        if (choice == 0) continue;
+                        return;
                     }
                     else
                     {
-                        User newUser = new User { Username = username };
-                        _context.Users.Add(newUser);
-                        _context.SaveChanges();
-                        Console.WriteLine("\nRegistrering lyckades!");
-                        Console.WriteLine("Tryck på valfri tangent för att återgå till menyn...");
-                        Console.ReadKey();
-                        return;
+                        if (string.IsNullOrEmpty(password))
+                        {
+                            int choice = MenuSystem.MenuInput(new[] { "Lösenordet kan inte vara tomt." }, new[] { "Försök igen", "Meny" }, ConsoleColor.Red);
+                            if (choice == 0) continue;
+                            return;
+                        }
+                        else if (password.Length < 6 || password.Length > 20)
+                        {
+                            int choice = MenuSystem.MenuInput(new[] { "Lösenordet måste vara mellan 6 och 20 tecken långt." }, new[] { "Försök igen", "Meny" }, ConsoleColor.Red);
+                            if (choice == 0) continue;
+                            return;
+                        }
+                        else
+                        {
+                            User newUser = new User { Username = username };
+                            _context.Users.Add(newUser);
+                            _context.SaveChanges();
+                            Console.WriteLine("\nRegistrering lyckades!");
+                            Console.WriteLine("Tryck på valfri tangent för att återgå till menyn...");
+                            Console.ReadKey();
+                            return;
+                        }
                     }
                 }
             }

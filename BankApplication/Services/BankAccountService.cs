@@ -2,7 +2,6 @@
 using BankApplication.Models;
 using BankApplication.Services.IServices;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Principal;
 
 namespace BankApplication.Services
 {
@@ -534,6 +533,5 @@ namespace BankApplication.Services
             Console.WriteLine("\nTryck på valfri tangent för att återgå till menyn...");
             Console.ReadKey();
         }
-
     }
 }

@@ -13,6 +13,9 @@ namespace BankApplication
         private readonly IBankAccountService _bankAccountService;
         private readonly IFunService _funService;
         private User? user;
+        private DateTime? lockoutUntil;
+        private int tries = 3;
+        private int failedAttempts = 0;
         private List<BankAccount> userBankAccounts = new();
 
         public App(ApplicationDbContext db, IAccountService accountService, IBankAccountService bankAccountService, IFunService funService)
@@ -48,17 +51,22 @@ namespace BankApplication
         {
             while(true)
             {
-                Console.Clear();
-                int choice = Menu.ShowArrowMenu(new string[] { "Välkommen till RetroBank 3000!", "Välj ett av alternativen:" }, new string[] { "Logga in", "Registrera", "Avsluta" });
+                int choice = MenuSystem.MenuInput(
+                    new string[] { "Välkommen till RetroBank 3000!", "Välj ett av alternativen:" }, 
+                    new string[] { "Logga in", "Registrera", "Avsluta" }, 
+                    null
+                );
 
                 switch (choice)
                 {
                     case 0:
-                        user = _accountService.Login()!;
+                        (user, lockoutUntil, tries, failedAttempts) = _accountService.Login(lockoutUntil, tries, failedAttempts);
                         break;
+
                     case 1:
                         _accountService.Register();
                         break;
+
                     case 2:
                         Console.Clear();
                         Console.WriteLine("Tack för att du använde RetroBank 3000! Hejdå!");

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using BankApplication.Data;
 using BankApplication.Services.IServices;
 using BankApplication.Services;
+using Microsoft.Extensions.Logging;
 
 namespace BankApplication
 {
@@ -15,7 +16,9 @@ namespace BankApplication
                 .ConfigureServices((context, services) =>
                 {
                     services.AddDbContext<ApplicationDbContext>(options =>
-                        options.UseSqlite("Data Source=bankapp.db"));
+                        options.UseSqlite("Data Source=bankapp.db")
+                        .LogTo(_ => { }, LogLevel.None));
+
                     services.AddScoped<IAccountService, AccountService>();
                     services.AddScoped<IBankAccountService, BankAccountService>();
                     services.AddScoped<IFunService, FunService>();
