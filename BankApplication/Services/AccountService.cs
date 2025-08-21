@@ -30,7 +30,8 @@ namespace BankApplication.Services
             while (true)
             {
                 Console.Clear();
-                MenuSystem.CenterY(2);
+                MenuSystem.CenterY(9);
+                MenuSystem.Header();
 
                 MenuSystem.WriteAllCenteredXForeground(
                     new[] { "LOGGA IN", "Tryck på [ESC] för att avbryta.", "" },
@@ -152,7 +153,8 @@ namespace BankApplication.Services
             while (true)
             {
                 Console.Clear();
-                MenuSystem.CenterY(2);
+                MenuSystem.CenterY(9);
+                MenuSystem.Header();
 
                 MenuSystem.WriteAllCenteredXForeground(
                     new[] { "REGISTRERA DIG", "Tryck på [ESC] för att avbryta.", "" },

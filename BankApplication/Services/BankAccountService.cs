@@ -4,6 +4,7 @@ using BankApplication.Models;
 using BankApplication.Services.IServices;
 using Microsoft.EntityFrameworkCore;
 using System.Numerics;
+using System.Reflection.Metadata.Ecma335;
 using System.Security.Principal;
 
 namespace BankApplication.Services
@@ -17,14 +18,14 @@ namespace BankApplication.Services
             _context = context;
         }
 
-        public void ViewBalance(int userId)
+        public void ViewAccounts(int userId)
         {
             var bankAccounts = _context.BankAccounts
                 .Where(b => b.UserId == userId)
                 .ToList();
 
             var accountStrings = bankAccounts
-                .Select(a => $"Titel: [{a.Title}] Kontosaldo: [{a.Balance} kr]")
+                .Select(a => $"Titel: [{a.Title}] Kontosaldo: [{a.Balance} kr] ID: [{a.Id}]")
                 .ToArray();
 
             MenuSystem.MenuInput(
@@ -114,6 +115,86 @@ namespace BankApplication.Services
                 );
 
                 return true;
+            }
+        }
+
+        public void RemoveAccount(int userId)
+        {
+            while (true)
+            {
+                var userAccounts = _context.BankAccounts
+                .Where(b => b.UserId == userId)
+                .ToList();
+
+                if (userAccounts.Count == 1)
+                {
+                    MenuSystem.MenuInput(
+                        new[] { "Du kan inte ta bort alla konton." },
+                        new[] { "Meny" },
+                        null
+                    );
+                    return;
+                }
+
+                string[] accountStrings = userAccounts
+                    .Select(a => $"Titel: [{a.Title}] Kontosaldo: [{a.Balance} kr]")
+                    .Concat(new[] { "Avbryt" })
+                    .ToArray();
+
+                int choice = MenuSystem.MenuInput(
+                    new[] { "TA BORT KONTO", "Välj ett konto att ta bort" },
+                    accountStrings,
+                    null
+                );
+
+                if (choice == accountStrings.Length - 1)
+                {
+                    MenuSystem.MenuInput(
+                        new[] { "Konto borttagning avbruten." },
+                        new[] { "Meny" },
+                        null
+                    );
+                    return;
+                }
+
+                var chosenAccount = userAccounts[choice];
+                if (chosenAccount.Balance > 0)
+                {
+                    choice = MenuSystem.MenuInput(
+                        new[] { $"Konto '{chosenAccount.Title}' har ett saldo på {chosenAccount.Balance:C}.",
+                            "Du kan inte ta bort ett konto med saldo.",
+                            "Försök igen eller ta ut pengarna först." },
+                        new[] { "Försök igen", "Överför till konto", "Ta ut pengar", "Meny" },
+                        ConsoleColor.Green
+                    );
+
+                    if (choice == 0)
+                    {
+                        continue;
+                    } 
+                    else if (choice == 1)
+                    {
+                        Transfer(userId);
+                        continue;
+                    }
+                    else if (choice == 2)
+                    {
+                        Withdraw(userId);
+                        continue;
+                    }
+                    else
+                    {
+                        return;
+                    }  
+                }
+
+                _context.BankAccounts.Remove(chosenAccount);
+                _context.SaveChanges();
+                MenuSystem.MenuInput(
+                    new[] { $"✅ Konto '{chosenAccount.Title}' har tagits bort." },
+                    new[] { "Meny" },
+                    null
+                );
             }
         }
 
@@ -289,7 +370,7 @@ namespace BankApplication.Services
                 if (choice == accountStrings.Length - 1)
                 {
                     MenuSystem.MenuInput(
-                        new[] { "Uttag avbrutet." },
+                        new[] { "Uttag avbruten." },
                         new[] { "Meny" },
                         null
                     );
@@ -429,114 +510,295 @@ namespace BankApplication.Services
 
         public void Transfer(int userId)
         {
-            Console.Clear();
-
-            var bankAccounts = _context.BankAccounts
-                .Where(b => b.UserId == userId)
-                .ToList();
-
-            if (bankAccounts.Count == 1)
-            {
-                Console.WriteLine("Du har bara ett konto. Du kan inte överföra mellan konton.");
-                Console.Write("\nTryck på valfri tangent för att återgå till menyn... ");
-                Console.ReadKey();
-                return;
-            }
-
-            Console.WriteLine("\nDina konton:");
-            foreach (var account in bankAccounts)
-                Console.WriteLine($"- {account.Title} (ID: {account.Id})");
-
-            BankAccount? fromAccount = null;
-            BankAccount? toAccount = null;
-
-            while (fromAccount == null)
-            {
-                Console.Write("\nAnge konto att överföra ifrån: ");
-                var input = Console.ReadLine();
-
-                fromAccount = bankAccounts.SingleOrDefault(a => a.Title.Equals(input, StringComparison.OrdinalIgnoreCase));
-                if (fromAccount == null)
-                    Console.WriteLine("Kunde inte hitta kontot. Försök igen.");
-            }
-
-            while (toAccount == null)
-            {
-                Console.Write("Ange konto att överföra till: ");
-                var input = Console.ReadLine();
-
-                toAccount = bankAccounts.SingleOrDefault(a => a.Title.Equals(input, StringComparison.OrdinalIgnoreCase));
-                if (toAccount == null)
-                    Console.WriteLine("Kunde inte hitta kontot. Försök igen.");
-                else if (toAccount.Id == fromAccount.Id)
-                {
-                    Console.WriteLine("Du kan inte överföra till samma konto.");
-                    toAccount = null;
-                }
-            }
-
-            decimal amount = 0;
             while (true)
             {
-                Console.Write("Ange summa att överföra: ");
-                if (!decimal.TryParse(Console.ReadLine(), out amount) || amount <= 0)
+                int transferTypeChoice = MenuSystem.MenuInput(
+                    new[] { "ÖVERFÖRING", "Välj typ av överföring" },
+                    new[] { "Mellan egna konton", "Till någon annans konto", "Avbryt" },
+                    null
+                );
+
+                if (transferTypeChoice == 2)
                 {
-                    Console.WriteLine("Ogiltigt belopp. Försök igen.");
-                    continue;
+                    MenuSystem.MenuInput(
+                        new[] { "Överföring avbruten." },
+                        new[] { "Meny" },
+                        null
+                    );
+                    return;
                 }
 
-                if (fromAccount.Balance < amount)
+                BankAccount? fromAccount = null;
+                BankAccount? toAccount = null;
+
+                if (transferTypeChoice == 0) 
                 {
-                    Console.WriteLine("Otillräckligt saldo. Försök igen.");
-                    continue;
+                    var userAccounts = _context.BankAccounts
+                        .Where(b => b.UserId == userId)
+                        .ToList();
+
+                    if (userAccounts.Count < 2)
+                    {
+                        int choice = MenuSystem.MenuInput(
+                            new[] { "Du har inte tillräckligt många konton för att göra en överföring." },
+                            new[] { "Skapa konto", "Meny" },
+                            null
+                        );
+
+                        if (choice == 0)
+                        {
+                            CreateAccount(userId);
+                        }
+                        else
+                        {
+                            return;
+                        }
+                    }
+
+                    string[] accountStrings = userAccounts
+                        .Select(a => $"Titel: [{a.Title}] Kontosaldo: [{a.Balance} kr]")
+                        .Concat(new[] { "Avbryt" })
+                        .ToArray();
+
+                    int fromChoice = MenuSystem.MenuInput(
+                        new[] { "ÖVERFÖRING", "Välj konto att överföra från" },
+                        accountStrings,
+                        null
+                    );
+
+                    if (fromChoice == accountStrings.Length - 1)
+                    {
+                        MenuSystem.MenuInput(
+                            new[] { "Överföring avbruten." },
+                            new[] { "Meny" },
+                            null
+                        );
+                        return;
+                    }
+                    fromAccount = userAccounts[fromChoice];
+
+                    int toChoice = MenuSystem.MenuInput(
+                        new[] { "Välj konto att överföra till" },
+                        accountStrings.Where((_, index) => index != fromChoice).ToArray(),
+                        null
+                    );
+
+                    if (toChoice == accountStrings.Length - 1)
+                    {
+                        MenuSystem.MenuInput(
+                            new[] { "Överföring avbruten." },
+                            new[] { "Meny" },
+                            null
+                        );
+                        return;
+                    }
+                    toAccount = userAccounts.Where((_, index) => index != fromChoice).ToList()[toChoice];
+                }
+                else if (transferTypeChoice == 1) 
+                {
+                    var senderAccounts = _context.BankAccounts
+                        .Where(b => b.UserId == userId)
+                        .ToList();
+
+                    string[] senderAccountStrings = senderAccounts
+                        .Select(a => $"Titel: [{a.Title}] Kontosaldo: [{a.Balance} kr]")
+                        .Concat(new[] { "Avbryt" })
+                        .ToArray();
+
+                    int fromChoice = MenuSystem.MenuInput(
+                        new[] { "ÖVERFÖRING", "Välj konto att överföra från" },
+                        senderAccountStrings,
+                        null
+                    );
+
+                    if (fromChoice == senderAccountStrings.Length - 1)
+                    {
+                        MenuSystem.MenuInput(
+                            new[] { "Överföring avbruten." },
+                            new[] { "Meny" },
+                            null
+                        );
+                        return;
+                    }
+                    fromAccount = senderAccounts[fromChoice];
+
+                    while (toAccount == null)
+                    {
+                        MenuSystem.CenterY(8);
+                        MenuSystem.Header();
+
+                        MenuSystem.WriteCenteredXForeground("Tryck på [ESC] för att avbryta.", ConsoleColor.Green, false);
+                        MenuSystem.WriteCenteredXForeground("Ange ID för mottagarens konto: ", ConsoleColor.Yellow, true);
+                        string? input = MenuSystem.ReadNumberWithEscape();
+
+                        if (input == null)
+                        {
+                            MenuSystem.MenuInput(
+                                new[] { "Överföring avbröts." },
+                                new[] { "Meny" },
+                                null
+                            );
+                            return;
+                        }
+
+                        if (input == "")
+                        {
+                            int choice = MenuSystem.MenuInput(
+                                new[] { "ID kan inte vara tomt. Försök igen." },
+                                new[] { "Försök igen", "Meny" },
+                                ConsoleColor.Red
+                            );
+                            if (choice == 0) continue;
+                            return;
+                        }
+
+                        if (!int.TryParse(input, out int toAccountId))
+                        {
+                            int choice = MenuSystem.MenuInput(
+                                new[] { "Ogiltigt ID. Försök igen." },
+                                new[] { "Försök igen", "Meny" },
+                                ConsoleColor.Red
+                            ); 
+                            if (choice == 0) continue;
+                            return;
+                        }
+
+                        toAccount = _context.BankAccounts
+                            .Include(b => b.Transactions)
+                            .FirstOrDefault(a => a.Id == toAccountId);
+
+                        if (toAccount == null)
+                        {
+                            int choice = MenuSystem.MenuInput(
+                                new[] { "Kunde inte hitta mottagarkontot. Försök igen." },
+                                new[] { "Försök igen", "Meny" },
+                                ConsoleColor.Red
+                            );
+                            if (choice == 0) continue;
+                            return;
+                        }
+                        else if (toAccount.UserId == userId)
+                        {
+                            int choice = MenuSystem.MenuInput(
+                                new[] { "Du kan inte överföra till ditt eget konto. Försök igen." },
+                                new[] { "Försök igen", "Meny" },
+                                ConsoleColor.Red
+                            );
+                            toAccount = null;
+                            if (choice == 0) continue;
+                            return;
+                        }
+                    }
                 }
 
-                break;
-            }
-
-            Console.WriteLine($"\nBekräfta överföring av {amount:C} från '{fromAccount.Title}' till '{toAccount.Title}'.");
-            Console.Write("Vill du fortsätta? (true/false): ");
-
-            if (bool.TryParse(Console.ReadLine(), out bool confirm) && confirm)
-            {
-                fromAccount.Balance -= amount;
-                toAccount.Balance += amount;
-
-                var transferFrom = new Transaction
+                decimal amount = 0;
+                while (true)
                 {
-                    Amount = amount,
-                    Date = DateTime.Now,
-                    Sender = true,
-                    BankAccountTitle = fromAccount.Title,
-                    OtherBankAccountTitle = toAccount.Title,
-                    BankAccountId = fromAccount.Id
-                };
-                fromAccount.Transactions.Add(transferFrom);
+                    MenuSystem.WriteCenteredXForeground("Tryck på [ESC] för att avbryta.", ConsoleColor.Green, false);
+                    MenuSystem.WriteCenteredXForeground("Ange överföringsbelopp: ", ConsoleColor.Yellow, true);
+                    string? input = MenuSystem.ReadNumberWithEscape();
 
-                var transferTo = new Transaction
+                    if (input == null)
+                    {
+                        MenuSystem.MenuInput(
+                            new[] { "Överföring avbruten." },
+                            new[] { "Meny" },
+                            null
+                        );
+                        return;
+                    }
+
+                    if (input == "")
+                    {
+                        int choice = MenuSystem.MenuInput(
+                            new[] { "Beloppet kan inte vara tomt. Försök igen." },
+                            new[] { "Försök igen", "Meny" },
+                            ConsoleColor.Red
+                        );
+
+                        if (choice == 0) continue;
+                        return;
+                    }
+
+                    if (!decimal.TryParse(input, out amount) || amount <= 0)
+                    {
+                        int choice = MenuSystem.MenuInput(
+                            new[] { "Ogiltigt belopp. Försök igen." },
+                            new[] { "Försök igen", "Meny" },
+                            ConsoleColor.Red
+                        );
+                        if (choice == 0) continue;
+                        return;
+                    }
+
+                    if (fromAccount!.Balance < amount)
+                    {
+                        int choice = MenuSystem.MenuInput(
+                            new[] { "Otillräckligt saldo. Försök igen." },
+                            new[] { "Försök igen", "Meny" },
+                            ConsoleColor.Red
+                        );
+                        if (choice == 0) continue;
+                        return;
+                    }
+
+                    break;
+                }
+
+                int confirmChoice = MenuSystem.MenuInput(
+                    new[] { $"Du skrev in {amount:C}", $"Vill du bekräfta överföringen från '{fromAccount.Title}' till '{toAccount!.Title}'?" },
+                    new[] { "Ja", "Nej" },
+                    null
+                );
+
+                if (confirmChoice == 0)
                 {
-                    Amount = amount,
-                    Date = DateTime.Now,
-                    Sender = false,
-                    BankAccountTitle = fromAccount.Title,
-                    OtherBankAccountTitle = toAccount.Title,
-                    BankAccountId = toAccount.Id
-                };
-                toAccount.Transactions.Add(transferTo);
+                    fromAccount.Balance -= amount;
+                    toAccount.Balance += amount;
 
-                _context.SaveChanges();
+                    var transferFrom = new Transaction
+                    {
+                        Amount = amount,
+                        Date = DateTime.UtcNow,
+                        Sender = true,
+                        BankAccountTitle = fromAccount.Title,
+                        OtherBankAccountTitle = toAccount.Title,
+                        BankAccountId = fromAccount.Id,
+                        Type = Transaction.TransactionType.Transfer
+                    };
+                    fromAccount.Transactions.Add(transferFrom);
 
-                Console.WriteLine($"\n✅ Överföringen lyckades! {amount:C} har överförts.");
-                Console.WriteLine($"- Nytt saldo på '{fromAccount.Title}': {fromAccount.Balance:C}");
-                Console.WriteLine($"- Nytt saldo på '{toAccount.Title}': {toAccount.Balance:C}");
+                    var transferTo = new Transaction
+                    {
+                        Amount = amount,
+                        Date = DateTime.UtcNow,
+                        Sender = false,
+                        BankAccountTitle = fromAccount.Title,
+                        OtherBankAccountTitle = toAccount.Title,
+                        BankAccountId = toAccount.Id,
+                        Type = Transaction.TransactionType.Transfer
+                    };
+                    toAccount.Transactions.Add(transferTo);
+
+                    _context.SaveChanges();
+
+                    MenuSystem.MenuInput(
+                        new[] { $"✅ Överföringen lyckades! {amount:C} har överförts från '{fromAccount.Title}' till '{toAccount.Title}'.",
+                                $"- Nytt saldo på '{fromAccount.Title}': {fromAccount.Balance:C}",
+                                $"- Nytt saldo på '{toAccount.Title}': {toAccount.Balance:C}" },
+                        new[] { "Meny" },
+                        null
+                    );
+                }
+                else
+                {
+                    MenuSystem.MenuInput(
+                        new[] { "❌ Överföringen avbröts." },
+                        new[] { "Meny" },
+                        null
+                    );
+                }
             }
-            else
-            {
-                Console.WriteLine("❌ Överföringen avbröts.");
-            }
-
-            Console.WriteLine("\nTryck på valfri tangent för att återgå till menyn...");
-            Console.ReadKey();
         }
 
         public void ViewTransactionHistory(int userId)
@@ -547,158 +809,56 @@ namespace BankApplication.Services
                 .SingleOrDefault(u => u.Id == userId)?
                 .Accounts
                 .SelectMany(a => a.Transactions)
+                .OrderByDescending(t => t.Date)
                 .ToList();
 
             if (transactions == null || !transactions.Any())
             {
-                Console.Clear();
-                Console.WriteLine("Inga transaktioner hittades.");
+                MenuSystem.MenuInput(
+                    new[] { "Inga transaktioner hittades." },
+                    new[] { "Meny" },
+                    null
+                );
+                return;
             }
-            else
-            {
-                Console.Clear();
-                Console.WriteLine($"Totalt antal transaktioner: {transactions.Count}");
-                Console.WriteLine("Transaktionshistorik:\n");
-                transactions = transactions.OrderByDescending(t => t.Date).ToList();
 
-                foreach (var transaction in transactions)
+            var transactionData = new List<string>();
+            foreach (var transaction in transactions)
+            {
+                if (transaction.OtherBankAccountTitle != null && transaction.Type == Transaction.TransactionType.Transfer && transaction.Sender == true)
                 {
-                    if (transaction.OtherBankAccountTitle != null && transaction.Type == Transaction.TransactionType.Transfer && transaction.Sender == true)
-                    {
-                        Console.WriteLine($"- {transaction.Date}: {transaction.Amount:C} ({transaction.Type}) från '{transaction.BankAccountTitle}' med id: '{transaction.BankAccountId}' till '{transaction.OtherBankAccountTitle}'");
-                    }
-                    else if(transaction.OtherBankAccountTitle != null && transaction.Type == Transaction.TransactionType.Transfer && transaction.Sender == false)
-                    {
-                        Console.WriteLine($"- {transaction.Date}: {transaction.Amount:C} ({transaction.Type}) till '{transaction.BankAccountTitle}' med id: '{transaction.BankAccountId}' från '{transaction.OtherBankAccountTitle}'");
-                    }
-                    else if (transaction.Type == Transaction.TransactionType.Deposit)
-                    {
-                        Console.WriteLine($"- {transaction.Date}: {transaction.Amount:C} ({transaction.Type}) på '{transaction.BankAccountTitle}'");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"- {transaction.Date}: {transaction.Amount:C} ({transaction.Type}) på '{transaction.BankAccountTitle}'");
-                    }
+                    transactionData.Add(
+                        $"- {transaction.Date}: {transaction.Amount:C} ({transaction.Type}) från '{transaction.BankAccountTitle}' (id: {transaction.BankAccountId}) till '{transaction.OtherBankAccountTitle}'"
+                    );
+                }
+                else if (transaction.OtherBankAccountTitle != null && transaction.Type == Transaction.TransactionType.Transfer && transaction.Sender == false)
+                {
+                    transactionData.Add(
+                        $"- {transaction.Date}: {transaction.Amount:C} ({transaction.Type}) till '{transaction.BankAccountTitle}' (id: {transaction.BankAccountId}) från '{transaction.OtherBankAccountTitle}'"
+                    );
+                }
+                else if (transaction.Type == Transaction.TransactionType.Deposit)
+                {
+                    transactionData.Add(
+                        $"- {transaction.Date}: {transaction.Amount:C} ({transaction.Type}) på '{transaction.BankAccountTitle}'"
+                    );
+                }
+                else
+                {
+                    transactionData.Add(
+                        $"- {transaction.Date}: {transaction.Amount:C} ({transaction.Type}) på '{transaction.BankAccountTitle}'"
+                    );
                 }
             }
 
-            Console.WriteLine("\nTryck på valfri tangent för att återgå till menyn...");
-            Console.ReadKey();
+            int choice = MenuSystem.MenuInput(
+                new[] { "VISA TRANSAKTIONER", "Dina transaktioner:", "" }
+                    .Concat(transactionData)
+                    .ToArray(),
+                new[] { "Meny" },
+                null
+            );
         }
 
-        public void TransferToExternalAccount(int userId)
-        {
-            var senderAccounts = _context.BankAccounts
-                .Where(b => b.UserId == userId)
-                .ToList();
-
-            Console.WriteLine("\nDina konton:");
-            foreach (var account in senderAccounts)
-                Console.WriteLine($"- {account.Title} (ID: {account.Id})");
-
-            BankAccount? fromAccount = null;
-            while (fromAccount == null)
-            {
-                Console.Write("\nAnge konto att överföra ifrån (titel eller ID): ");
-                var input = Console.ReadLine();
-
-                fromAccount = senderAccounts
-                    .FirstOrDefault(a =>
-                        a.Title.Equals(input, StringComparison.OrdinalIgnoreCase) ||
-                        a.Id.ToString() == input);
-
-                if (fromAccount == null)
-                    Console.WriteLine("Kunde inte hitta ditt konto. Försök igen.");
-            }
-
-            BankAccount? toAccount = null;
-            while (toAccount == null)
-            {
-                Console.Write("Ange ID för mottagarens konto: ");
-                var input = Console.ReadLine();
-
-                if (!int.TryParse(input, out int toAccountId))
-                {
-                    Console.WriteLine("Ogiltigt ID. Försök igen.");
-                    continue;
-                }
-
-                toAccount = _context.BankAccounts
-                    .Include(b => b.Transactions)
-                    .FirstOrDefault(a => a.Id == toAccountId);
-
-                if (toAccount == null)
-                {
-                    Console.WriteLine("Kunde inte hitta mottagarkontot. Försök igen.");
-                }
-                else if (toAccount.UserId == userId)
-                {
-                    Console.WriteLine("Du kan inte överföra till ditt eget konto. Försök igen.");
-                    toAccount = null;
-                }
-            }
-
-            decimal amount = 0;
-            while (true)
-            {
-                Console.Write("Ange summa att överföra: ");
-                if (!decimal.TryParse(Console.ReadLine(), out amount) || amount <= 0)
-                {
-                    Console.WriteLine("Ogiltigt belopp. Försök igen.");
-                    continue;
-                }
-
-                if (fromAccount.Balance < amount)
-                {
-                    Console.WriteLine("Otillräckligt saldo. Försök igen.");
-                    continue;
-                }
-
-                break;
-            }
-
-            Console.WriteLine($"\nBekräfta överföring av {amount:C} från '{fromAccount.Title}' till konto ID {toAccount.Id} ('{toAccount.Title}').");
-            Console.Write("Vill du fortsätta? (true/false): ");
-
-            if (bool.TryParse(Console.ReadLine(), out bool confirm) && confirm)
-            {
-                fromAccount.Balance -= amount;
-                toAccount.Balance += amount;
-
-                var transferFrom = new Transaction
-                {
-                    Amount = amount,
-                    Date = DateTime.Now,
-                    Sender = true,
-                    BankAccountTitle = fromAccount.Title,
-                    OtherBankAccountTitle = toAccount.Title,
-                    BankAccountId = fromAccount.Id
-                };
-                fromAccount.Transactions.Add(transferFrom);
-
-                var transferTo = new Transaction
-                {
-                    Amount = amount,
-                    Date = DateTime.Now,
-                    Sender = false,
-                    BankAccountTitle = fromAccount.Title,
-                    OtherBankAccountTitle = toAccount.Title,
-                    BankAccountId = toAccount.Id
-                };
-                toAccount.Transactions.Add(transferTo);
-
-                _context.SaveChanges();
-
-                Console.WriteLine($"\n✅ Överföringen lyckades! {amount:C} har överförts.");
-                Console.WriteLine($"- Nytt saldo på '{fromAccount.Title}': {fromAccount.Balance:C}");
-            }
-            else
-            {
-                Console.WriteLine("❌ Överföringen avbröts.");
-            }
-
-            Console.WriteLine("\nTryck på valfri tangent för att återgå till menyn...");
-            Console.ReadKey();
-        }
     }
 }

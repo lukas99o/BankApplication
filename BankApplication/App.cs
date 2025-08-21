@@ -91,8 +91,8 @@ namespace BankApplication
             {
                 int choice = MenuSystem.MenuInput(
                     new[] { "RETRO BANK 3000", $"Inloggad som: {user.Username}", "Välj ett av alternativen:" },
-                    new[] { "Visa saldo", "Insättning", "Utdrag", "Överför pengar mellan dina konton", "Överför pengar till någon annans konto",
-                            "Visa transaktioner", "Skapa nytt konto", "Visa leaderboard", "Gamble", "Logga ut"
+                    new[] { "Visa konton", "Insättning", "Utdrag", "Överförning", "Visa transaktioner",
+                            "Skapa konto", "Radera konto", "Visa leaderboard", "Gamble", "Logga ut"
                           },
                     null
                 );
@@ -100,7 +100,7 @@ namespace BankApplication
                 switch (choice)
                 {
                     case 0:
-                        _bankAccountService.ViewBalance(user.Id);
+                        _bankAccountService.ViewAccounts(user.Id);
                         break;
                     case 1:
                         _bankAccountService.Deposit(user.Id);
@@ -112,13 +112,13 @@ namespace BankApplication
                         _bankAccountService.Transfer(user.Id);
                         break;
                     case 4:
-                        _bankAccountService.TransferToExternalAccount(user.Id);
-                        break;
-                    case 5:
                         _bankAccountService.ViewTransactionHistory(user.Id);
                         break;
-                    case 6:
+                    case 5:
                         _bankAccountService.CreateAccount(user.Id);
+                        break;
+                    case 6:
+                        _bankAccountService.RemoveAccount(user.Id);
                         break;
                     case 7:
                         _funService.Leaderboard(user.Id);

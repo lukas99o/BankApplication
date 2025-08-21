@@ -18,7 +18,8 @@ namespace BankApplication.Helpers
                 Console.Clear();
 
                 int totalLines = options.Length + (headers?.Length ?? 0);
-                CenterY(totalLines);
+                CenterY(totalLines + 6 + 1);
+                Header();
 
                 if (headers != null && headers.Length > 0)
                 {
@@ -31,7 +32,7 @@ namespace BankApplication.Helpers
                 for (int i = 0; i < options.Length; i++)
                 {
                     if (i == selectedIndex)
-                        WriteCenteredXBackground($" ==> {options[i]}     ");
+                        WriteCenteredXBackground($" ➔ {options[i]}   ");
                     else
                         WriteCenteredX(options[i]);
                 }
@@ -242,6 +243,21 @@ namespace BankApplication.Helpers
             }
 
             return user;
+        }
+
+        public static void Header() 
+        {
+            string[] banner = new[]
+            {
+                "╔══════════════════════════════════════╗",
+                "║                                      ║",
+                "║           RETROBANK 3000             ║",
+                "║                                      ║",
+                "╚══════════════════════════════════════╝",
+                ""
+            };
+
+            MenuSystem.WriteAllCenteredXForeground(banner, ConsoleColor.Green);
         }
     }
 }
