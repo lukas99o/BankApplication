@@ -13,7 +13,7 @@ namespace BankApplication.Services.IServices
         void Withdraw(int userId);
         void Transfer(int userId);
         void ViewTransactionHistory(int userId);
-        void CreateAccount(int userId);
+        bool CreateAccount(int userId);
         void TransferToExternalAccount(int userId);
     }
 }

@@ -1,7 +1,10 @@
 ﻿using BankApplication.Data;
+using BankApplication.Helpers;
 using BankApplication.Models;
 using BankApplication.Services.IServices;
 using Microsoft.EntityFrameworkCore;
+using System.Numerics;
+using System.Security.Principal;
 
 namespace BankApplication.Services
 {
@@ -14,7 +17,24 @@ namespace BankApplication.Services
             _context = context;
         }
 
-        public void CreateAccount(int userId)
+        public void ViewBalance(int userId)
+        {
+            var bankAccounts = _context.BankAccounts
+                .Where(b => b.UserId == userId)
+                .ToList();
+
+            var accountStrings = bankAccounts
+                .Select(a => $"Titel: [{a.Title}] Kontosaldo: [{a.Balance} kr]")
+                .ToArray();
+
+            MenuSystem.MenuInput(
+                accountStrings,
+                new[] { "Meny" },
+                null
+            );
+        }
+
+        public bool CreateAccount(int userId)
         {
             var user = _context.Users
                 .Include(u => u.Accounts)
@@ -22,118 +42,389 @@ namespace BankApplication.Services
 
             if (user?.Accounts == null || !user.Accounts.Any())
             {
-                Console.WriteLine("👋 Välkommen till banken!");
-                Console.WriteLine("Vänligen skapa ditt första konto för att börja.");
-            }
+                int choice = MenuSystem.MenuInput(
+                    new[] { "👋 VÄLKOMMEN TILL BANKEN!", "Inga konton hittades.", "Vänligen skapa ditt första konto." },
+                    new[] { "Skapa ett nytt konto", "Meny" },
+                    null
+                );
 
-            Console.Clear();
-            string? title;
+                if (choice == 1) return false; 
+            }
 
             while (true)
             {
-                Console.Write("\nAnge det nya kontots titel: ");
-                title = Console.ReadLine();
+                MenuSystem.CenterY(2);
+                MenuSystem.WriteAllCenteredXForeground(
+                    new[] { "SKAPA KONTO", "Tryck på [ESC] för att avbryta.", "" },
+                    ConsoleColor.Green
+                );
 
-                if (string.IsNullOrEmpty(title))
+                MenuSystem.WriteCenteredXForeground("Ange det nya kontots titel: ", ConsoleColor.Yellow, true);
+                string? title = MenuSystem.ReadLineWithEscape();
+
+                if (title == null)
                 {
-                    Console.WriteLine("Titeln kan inte vara tom. Försök igen.");
-                    continue;
+                    MenuSystem.MenuInput(
+                        new[] { "Konto skapande avbröts." },
+                        new[] { "Meny" },
+                        null
+                    );
+
+                    return false;
+                }
+
+                if (title == "")
+                {
+                    int choice = MenuSystem.MenuInput(
+                        new[] { "Titeln kan inte vara tom. Försök igen." },
+                        new[] { "Försök igen", "Meny" },
+                        ConsoleColor.Red
+                    );
+                    if (choice == 0) continue;
+
+                    return false;
                 }
 
                 if (title.Length > 50)
                 {
-                    Console.WriteLine("Titeln får inte vara längre än 50 tecken. Försök igen.");
-                    continue;
+                    int choice = MenuSystem.MenuInput(
+                        new[] { "Titeln får inte vara längre än 50 tecken. Försök igen." },
+                        new[] { "Försök igen", "Meny" },
+                        ConsoleColor.Red
+                    ); 
+                    if (choice == 0) continue;
+
+                    return false;
                 }
 
-                break;
+                var account = new BankAccount
+                {
+                    UserId = userId,
+                    Balance = 0,
+                    Title = title
+                };
+
+                _context.BankAccounts.Add(account);
+                _context.SaveChanges();
+
+                MenuSystem.MenuInput(
+                    new[] { $"✅ Ditt konto '{title}' har skapats med ID: {account.Id}." },
+                    new[] { "Meny" },
+                    null
+                );
+
+                return true;
             }
-
-            var account = new BankAccount
-            {
-                UserId = userId,
-                Balance = 0,
-                Title = title
-            };
-
-            _context.BankAccounts.Add(account);
-            _context.SaveChanges();
-
-            Console.WriteLine($"\n✅ Ditt konto '{title}' har skapats med ID: {account.Id}.");
-            Console.WriteLine("\nTryck på valfri tangent för att återgå till menyn...");
-            Console.ReadKey();
         }
 
         public void Deposit(int userId)
         {
-            Console.Clear();
-            decimal amount;
-            BankAccount? account = null;
-
             while (true)
             {
-                Console.Write("Ange kontots titel för insättning: ");
-                string? title = Console.ReadLine();
+                var userAccounts = _context.BankAccounts
+                    .Where(b => b.UserId == userId)
+                    .ToList();
 
-                if (!string.IsNullOrWhiteSpace(title))
+                string[] accountStrings = userAccounts
+                    .Select(a => $"Titel: [{a.Title}] Kontosaldo: [{a.Balance} kr]")
+                    .Concat(new[] { "Avbryt" })
+                    .ToArray();
+
+                int choice = MenuSystem.MenuInput(
+                    new[] { "INSÄTTNING", "Välj ett konto för insättning" },
+                    accountStrings,
+                    null
+                );
+
+                if (choice == accountStrings.Length - 1) 
                 {
-                    account = _context.Users
-                        .Include(u => u.Accounts)
-                        .SingleOrDefault(u => u.Id == userId)?
-                        .Accounts
-                        .SingleOrDefault(a => a.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
+                    MenuSystem.MenuInput(
+                        new[] { "Insättning avbruten." },
+                        new[] { "Meny" },
+                        null
+                    );
+                    return;
+                }
+                var chosenAccount = userAccounts[choice];
 
-                    if (account != null)
+                choice = MenuSystem.MenuInput(
+                        new[] { "Välj insättningsbelopp" },
+                        new[] { "100 kr", "200 kr", "500 kr", "1 000 kr", "2 000 kr",
+                                "5 000 kr", "10 000 kr", "Ange manuellt", "Avbryt" },
+                        null
+                );
+
+                if (choice == 8) 
+                {
+                    choice = MenuSystem.MenuInput(
+                        new[] { "Insättning avbröts." },
+                        new[] { "Försök igen", "Meny" },
+                        null
+                    );
+
+                    if (choice == 0) continue;
+                    return;
+                }
+
+                decimal amount = choice switch
+                {
+                    0 => 100m,
+                    1 => 200m,
+                    2 => 500m,
+                    3 => 1000m,
+                    4 => 2000m,
+                    5 => 5000m,
+                    6 => 10000m,
+                    _ => 0m 
+                };
+
+                if (choice == 7)
+                {
+                    while (true)
+                    {
+                        MenuSystem.CenterY(2);
+                        MenuSystem.WriteCenteredXForeground("Tryck på [ESC] för att avbryta.", ConsoleColor.Green, false);
+                        MenuSystem.WriteCenteredXForeground("Ange insättningsbelopp: ", ConsoleColor.Yellow, true);
+                        string? input = MenuSystem.ReadNumberWithEscape();
+
+                        if (input == null)
+                        {
+                            MenuSystem.MenuInput(
+                                new[] { "Insättning avbröts." },
+                                new[] { "Meny" },
+                                null
+                            );
+                            return;
+                        }
+
+                        if (input == "")
+                        {
+                            choice = MenuSystem.MenuInput(
+                                new[] { "Beloppet kan inte vara tomt. Försök igen." },
+                                new[] { "Försök igen", "Meny" },
+                                ConsoleColor.Red
+                            );
+
+                            if (choice == 0) continue;
+                            return;
+                        }
+
+                        if (!decimal.TryParse(input, out amount) || amount <= 0)
+                        {
+                            choice = MenuSystem.MenuInput(
+                                new[] { "Ogiltigt belopp. Försök igen." },
+                                new[] { "Försök igen", "Meny" },
+                                ConsoleColor.Red
+                            );
+                            if (choice == 0) continue;
+                            return;
+                        }
+
                         break;
+                    }
+                }
 
-                    Console.WriteLine("Inget konto med den titeln hittades. Försök igen.");
+                choice = MenuSystem.MenuInput(
+                        new[] { $"Du skrev in {amount} kr", $"Vill du bekräfta insättningen till '{chosenAccount.Title}'?" },
+                        new[] { "Ja", "Nej" },
+                        null
+                    );
+
+                if (choice == 0)
+                {
+                    chosenAccount.Balance += amount;
+
+                    var transaction = new Transaction
+                    {
+                        Amount = amount,
+                        Date = DateTime.UtcNow,
+                        Type = Transaction.TransactionType.Deposit,
+                        BankAccountTitle = chosenAccount.Title,
+                        BankAccountId = chosenAccount.Id
+                    };
+
+                    chosenAccount.Transactions.Add(transaction);
+                    _context.SaveChanges();
+
+                    MenuSystem.MenuInput(
+                        new[] { $"✅ Insättningen lyckades! {amount:C} har lagts till på kontot '{chosenAccount.Title}'.",
+                                $"- Nytt saldo: {chosenAccount.Balance:C}" },
+                        new[] { "Meny" },
+                        null
+                    ); 
+                    return;
                 }
                 else
                 {
-                    Console.WriteLine("Titeln kan inte vara tom. Försök igen.");
+                    choice = MenuSystem.MenuInput(
+                        new[] { "❌ Insättningen avbröts." },
+                        new[] { "Försök igen", "Meny" },
+                        null
+                    );
+                    if (choice == 0) continue;
+                    return;
                 }
             }
+        }
 
+        public void Withdraw(int userId)
+        {
             while (true)
             {
-                Console.Write("Ange insättningsbelopp: ");
-                string? input = Console.ReadLine();
+                var userAccounts = _context.BankAccounts
+                    .Where(b => b.UserId == userId)
+                    .ToList();
 
-                if (decimal.TryParse(input, out amount) && amount > 0)
-                    break;
+                string[] accountStrings = userAccounts
+                    .Select(a => $"Titel: [{a.Title}] Kontosaldo: [{a.Balance} kr]")
+                    .Concat(new[] { "Avbryt" })
+                    .ToArray();
 
-                Console.WriteLine("Beloppet måste vara ett positivt nummer. Försök igen.");
-            }
+                int choice = MenuSystem.MenuInput(
+                    new[] { "UTTAG", "Välj ett konto för uttag" },
+                    accountStrings,
+                    null
+                );
 
-            Console.WriteLine($"\nBekräfta insättning av {amount:C} till '{account.Title}'.");
-            Console.Write("Vill du fortsätta? (true/false): ");
-
-            if (bool.TryParse(Console.ReadLine(), out bool confirm) && confirm)
-            {
-                account.Balance += amount;
-
-                var transaction = new Transaction
+                if (choice == accountStrings.Length - 1)
                 {
-                    Amount = amount,
-                    Date = DateTime.Now,
-                    Type = Transaction.TransactionType.Deposit,
-                    BankAccountTitle = account.Title,
-                    BankAccountId = account.Id
+                    MenuSystem.MenuInput(
+                        new[] { "Uttag avbrutet." },
+                        new[] { "Meny" },
+                        null
+                    );
+                    return;
+                }
+                var chosenAccount = userAccounts[choice];
+
+                choice = MenuSystem.MenuInput(
+                        new[] { "Välj uttagsbelopp", $"Kontosaldo: {chosenAccount.Balance:C}" },
+                        new[] { "100 kr", "200 kr", "500 kr", "1 000 kr", "2 000 kr",
+                                "5 000 kr", "10 000 kr", "Ange manuellt", "Avbryt" },
+                        null
+                );
+
+                if (choice == 8)
+                {
+                    choice = MenuSystem.MenuInput(
+                        new[] { "Uttag avbröts." },
+                        new[] { "Försök igen", "Meny" },
+                        null
+                    );
+
+                    if (choice == 0) continue;
+                    return;
+                }
+
+                decimal amount = choice switch
+                {
+                    0 => 100m,
+                    1 => 200m,
+                    2 => 500m,
+                    3 => 1000m,
+                    4 => 2000m,
+                    5 => 5000m,
+                    6 => 10000m,
+                    _ => 0m
                 };
 
-                account.Transactions.Add(transaction);
-                _context.SaveChanges();
+                if (choice == 7)
+                {
+                    while (true)
+                    {
+                        MenuSystem.CenterY(2);
+                        MenuSystem.WriteCenteredXForeground("Tryck på [ESC] för att avbryta.", ConsoleColor.Green, false);
+                        MenuSystem.WriteCenteredXForeground("Ange uttagsbelopp: ", ConsoleColor.Yellow, true);
+                        string? input = MenuSystem.ReadNumberWithEscape();
 
-                Console.WriteLine($"\n✅ Insättningen lyckades! {amount:C} har lagts till på kontot \"{account.Title}\".");
-                Console.WriteLine($"- Nytt saldo: {account.Balance:C}");
-            }
-            else
-            {
-                Console.WriteLine("❌ Insättningen avbröts.");
-            }
+                        if (input == null)
+                        {
+                            MenuSystem.MenuInput(
+                                new[] { "Uttag avbröts." },
+                                new[] { "Meny" },
+                                null
+                            );
+                            return;
+                        }
 
-            Console.WriteLine("\nTryck på valfri tangent för att återgå till menyn...");
-            Console.ReadKey();
+                        if (input == "")
+                        {
+                            choice = MenuSystem.MenuInput(
+                                new[] { "Beloppet kan inte vara tomt. Försök igen." },
+                                new[] { "Försök igen", "Meny" },
+                                ConsoleColor.Red
+                            );
+
+                            if (choice == 0) continue;
+                            return;
+                        }
+
+                        if (!decimal.TryParse(input, out amount) || amount <= 0)
+                        {
+                            choice = MenuSystem.MenuInput(
+                                new[] { "Ogiltigt belopp. Försök igen." },
+                                new[] { "Försök igen", "Meny" },
+                                ConsoleColor.Red
+                            );
+                            if (choice == 0) continue;
+                            return;
+                        }
+                        break;
+                    }
+                }
+
+                if (chosenAccount.Balance < amount)
+                {
+                    choice = MenuSystem.MenuInput(
+                        new[] { "Otillräckligt saldo. Försök igen." },
+                        new[] { "Försök igen", "Meny" },
+                        ConsoleColor.Red
+                    );
+                    if (choice == 0) continue;
+                    return;
+                }
+
+                choice = MenuSystem.MenuInput(
+                        new[] { $"Du skrev in {amount} kr", $"Vill du bekräfta uttaget från '{chosenAccount.Title}'?" },
+                        new[] { "Ja", "Nej" },
+                        null
+                    );
+
+                if (choice == 0)
+                {
+                    chosenAccount.Balance -= amount;
+
+                    var transaction = new Transaction
+                    {
+                        Amount = amount,
+                        Date = DateTime.UtcNow,
+                        Type = Transaction.TransactionType.Withdrawal,
+                        BankAccountTitle = chosenAccount.Title,
+                        BankAccountId = chosenAccount.Id
+                    };
+
+                    chosenAccount.Transactions.Add(transaction);
+                    _context.SaveChanges();
+
+                    MenuSystem.MenuInput(
+                        new[] { $"✅ Uttaget lyckades! {amount:C} har dragits från kontot '{chosenAccount.Title}'.",
+                                $"- Nytt saldo: {chosenAccount.Balance:C}" },
+                        new[] { "Meny" },
+                        null
+                    );
+                    return;
+                }
+                else
+                {
+                    choice = MenuSystem.MenuInput(
+                        new[] { "❌ Uttaget avbröts." },
+                        new[] { "Försök igen", "Meny" },
+                        null
+                    );
+                    if (choice == 0) continue;
+                    return;
+                }
+            }
         }
 
         public void Transfer(int userId)
@@ -248,47 +539,6 @@ namespace BankApplication.Services
             Console.ReadKey();
         }
 
-
-        public void ViewBalance(int userId)
-        {
-            Console.Clear();
-            BankAccount? account = null;
-
-
-            while (true)
-            {
-                Console.Write("Ange kontots titel för att se saldot: ");
-                string? title = Console.ReadLine();
-
-                if (!string.IsNullOrWhiteSpace(title))
-                {
-                    account = _context.Users
-                        .Include(u => u.Accounts)
-                        .SingleOrDefault(u => u.Id == userId)?
-                        .Accounts
-                        .SingleOrDefault(a => a.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
-
-
-                    if (account != null)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        Console.WriteLine("Inget konto med den titeln hittades. Försök igen.");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("Titeln kan inte vara tom. Försök igen.");
-                }
-            }
-
-            Console.WriteLine($"\nSaldo för kontot \"{account.Title}\": {account.Balance:C}");
-            Console.WriteLine("\nTryck på valfri tangent för att återgå till menyn...");
-            Console.ReadKey();
-        }
-
         public void ViewTransactionHistory(int userId)
         {
             var transactions = _context.Users
@@ -330,89 +580,6 @@ namespace BankApplication.Services
                         Console.WriteLine($"- {transaction.Date}: {transaction.Amount:C} ({transaction.Type}) på '{transaction.BankAccountTitle}'");
                     }
                 }
-            }
-
-            Console.WriteLine("\nTryck på valfri tangent för att återgå till menyn...");
-            Console.ReadKey();
-        }
-
-        public void Withdraw(int userId)
-        {
-            Console.Clear();
-            BankAccount? account = null;
-
-            while (true)
-            {
-                Console.Write("Ange kontots titel för att ta ut pengar: ");
-                string? title = Console.ReadLine();
-
-                if (!string.IsNullOrWhiteSpace(title))
-                {
-                    account = _context.Users
-                        .Include(u => u.Accounts)
-                        .SingleOrDefault(u => u.Id == userId)?
-                        .Accounts
-                        .SingleOrDefault(a => a.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
-
-                    if (account != null)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        Console.WriteLine("Inget konto med den titeln hittades. Försök igen.");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("Titeln kan inte vara tom. Försök igen.");
-                }
-            }
-
-            decimal amount = 0;
-            while (true)
-            {
-                Console.Write("Ange belopp att ta ut: ");
-                if (!decimal.TryParse(Console.ReadLine(), out amount) || amount <= 0)
-                {
-                    Console.WriteLine("Ogiltigt belopp. Försök igen.");
-                    continue;
-                }
-
-                if (account.Balance < amount)
-                {
-                    Console.WriteLine("Otillräckligt saldo. Försök igen.");
-                    continue;
-                }
-
-                break;
-            }
-
-            Console.WriteLine($"\nBekräfta uttag av {amount:C} från '{account.Title}'.");
-            Console.Write("Vill du fortsätta? (true/false): ");
-
-            if (bool.TryParse(Console.ReadLine(), out bool confirm) && confirm)
-            {
-                account.Balance -= amount;
-
-                var transaction = new Transaction
-                {
-                    Amount = amount,
-                    Date = DateTime.Now,
-                    Type = Transaction.TransactionType.Withdrawal,
-                    BankAccountTitle = account.Title,
-                    BankAccountId = account.Id
-                };
-
-                account.Transactions.Add(transaction);
-                _context.SaveChanges();
-
-                Console.WriteLine($"\n✅ Uttaget lyckades! {amount:C} har tagits ut.");
-                Console.WriteLine($"- Nytt saldo på '{account.Title}': {account.Balance:C}");
-            }
-            else
-            {
-                Console.WriteLine("❌ Uttaget avbröts.");
             }
 
             Console.WriteLine("\nTryck på valfri tangent för att återgå till menyn...");

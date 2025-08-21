@@ -35,24 +35,35 @@ namespace BankApplication
                     .Where(b => b.UserId == user!.Id)
                     .ToList();
 
-            if (userBankAccounts.Count() == 0)
-            {
-                _bankAccountService.CreateAccount(user!.Id);
-            }
-
             while (true)
             {
-                MainMenu();
-                LoginMenu();
+                if (userBankAccounts.Count() == 0)
+                {
+                    bool account = _bankAccountService.CreateAccount(user!.Id);
+
+                    if (account)
+                    {
+                        MainMenu();
+                    }
+                    else
+                    {
+                        LoginMenu();
+                    }
+                }
+                else
+                {
+                    MainMenu();
+                    LoginMenu();
+                }
             }
         }
 
         public void LoginMenu()
         {
-            while(true)
+            while(user == null)
             {
                 int choice = MenuSystem.MenuInput(
-                    new string[] { "Välkommen till RetroBank 3000!", "Välj ett av alternativen:" }, 
+                    new string[] { "VÄLKOMMEN TILL RETROBANK 3000!", "Välj ett av alternativen:" }, 
                     new string[] { "Logga in", "Registrera", "Avsluta" }, 
                     null
                 );
@@ -68,15 +79,8 @@ namespace BankApplication
                         break;
 
                     case 2:
-                        Console.Clear();
-                        Console.WriteLine("Tack för att du använde RetroBank 3000! Hejdå!");
-                        Environment.Exit(0);
+                        MenuSystem.ExitApplication();
                         break;
-                }
-
-                if (user != null)
-                {
-                    break;
                 }
             }
         }
@@ -85,60 +89,45 @@ namespace BankApplication
         {
             while (user != null)
             {
-                Console.Clear();
-                Console.WriteLine("Välkommen till RetroBank 3000!");
-                Console.WriteLine($"Inloggad som: {user.Username}");
-                Console.WriteLine("\nVälj ett alternativ:");
-                Console.WriteLine("1. Visa saldo");
-                Console.WriteLine("2. Sätt in pengar");
-                Console.WriteLine("3. Ta ut pengar");
-                Console.WriteLine("4. Överför pengar mellan dina konton");
-                Console.WriteLine("5. Överför pengar till någon annans konto");
-                Console.WriteLine("6. Visa transaktioner");
-                Console.WriteLine("7. Skapa nytt konto");
-                Console.WriteLine("8. Visa leaderboard");
-                Console.WriteLine("9. Gamble");
-                Console.WriteLine("10. Logga ut");
-
-                string? choice = Console.ReadLine();
+                int choice = MenuSystem.MenuInput(
+                    new[] { "RETRO BANK 3000", $"Inloggad som: {user.Username}", "Välj ett av alternativen:" },
+                    new[] { "Visa saldo", "Insättning", "Utdrag", "Överför pengar mellan dina konton", "Överför pengar till någon annans konto",
+                            "Visa transaktioner", "Skapa nytt konto", "Visa leaderboard", "Gamble", "Logga ut"
+                          },
+                    null
+                );
 
                 switch (choice)
                 {
-                    case "1":
+                    case 0:
                         _bankAccountService.ViewBalance(user.Id);
                         break;
-                    case "2":
+                    case 1:
                         _bankAccountService.Deposit(user.Id);
                         break;
-                    case "3":
+                    case 2:
                         _bankAccountService.Withdraw(user.Id);
                         break;
-                    case "4":
+                    case 3:
                         _bankAccountService.Transfer(user.Id);
                         break;
-                    case "5":
+                    case 4:
                         _bankAccountService.TransferToExternalAccount(user.Id);
                         break;
-                    case "6":
+                    case 5:
                         _bankAccountService.ViewTransactionHistory(user.Id);
                         break;
-                    case "7":
+                    case 6:
                         _bankAccountService.CreateAccount(user.Id);
                         break;
-                    case "8":
+                    case 7:
                         _funService.Leaderboard(user.Id);
                         break;
-                    case "9":
+                    case 8:
                         _funService.Gamble(user.Id);
                         break;
-                    case "10":
-                        user = null;
-                        Console.WriteLine("Du har loggats ut. Tryck på valfri tangent för att återgå till inloggningsmenyn...");
-                        Console.ReadKey();
-                        return;
-                    default:
-                        Console.WriteLine("Ogiltigt val, försök igen. Tryck på valfri tangent för att återgå till menyn... ");
-                        Console.ReadKey();
+                    case 9:
+                        user = MenuSystem.LogOut(user);
                         break;
                 }
             }

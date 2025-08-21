@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using BankApplication.Models;
+using System.Text;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace BankApplication.Helpers
@@ -30,7 +31,7 @@ namespace BankApplication.Helpers
                 for (int i = 0; i < options.Length; i++)
                 {
                     if (i == selectedIndex)
-                        WriteCenteredXBackground($"==> {options[i]}    ");
+                        WriteCenteredXBackground($" ==> {options[i]}     ");
                     else
                         WriteCenteredX(options[i]);
                 }
@@ -50,6 +51,7 @@ namespace BankApplication.Helpers
 
             } while (key != ConsoleKey.Enter);
 
+            Console.Clear();
             return selectedIndex;
         }
 
@@ -168,20 +170,78 @@ namespace BankApplication.Helpers
             }
         }
 
-        public static void ListenForEnter()
+        public static string? ReadNumberWithEscape()
         {
-            WriteCenteredXForeground("Tryck på enter för att återgå till menyn: ", ConsoleColor.Yellow, true);
+            var buffer = new StringBuilder();
 
             while (true)
             {
                 var key = Console.ReadKey(intercept: true);
+
                 if (key.Key == ConsoleKey.Enter)
                 {
-                    Console.ResetColor();
-                    Console.Clear();
-                    break;
+                    Console.WriteLine();
+                    return buffer.ToString();
+                }
+                else if (key.Key == ConsoleKey.Escape)
+                {
+                    Console.WriteLine();
+                    return null;
+                }
+                else if (key.Key == ConsoleKey.Backspace && buffer.Length > 0)
+                {
+                    buffer.Remove(buffer.Length - 1, 1);
+                    Console.Write("\b \b");
+                }
+                else if (char.IsDigit(key.KeyChar))
+                {
+                    buffer.Append(key.KeyChar);
+                    Console.Write(key.KeyChar);
                 }
             }
+        }
+
+        public static void ExitApplication()
+        {
+            int choice = MenuSystem.MenuInput(
+                    new[] { "Avsluta", "Är du säker på att du vill stänga av Retro Bank 3000?" },
+                    new[] { "Ja", "Nej" },
+                    null
+                );
+
+            if (choice == 0) 
+            {
+                MenuSystem.MenuInput(
+                    new[] { "Tack för att du använde RetroBank 3000!", "Vi hoppas du haft en trevlig upplevelse!" },
+                    new[] { "Avsluta" },
+                    null
+                );
+
+                Environment.Exit(0);
+            }
+
+            return;
+        }
+
+        public static User? LogOut(User user)
+        {
+            int choice = MenuSystem.MenuInput(
+                new[] { "LOGGA UT", "Är du säker på att du vill logga ut?" },
+                new[] { "Ja", "Nej" },
+                null
+            );
+
+            if (choice == 0) 
+            {
+                MenuSystem.MenuInput(
+                    new[] { "Du har nu loggats ut." },
+                    new[] { "Fortsätt" },
+                    null
+                );
+                return null;
+            }
+
+            return user;
         }
     }
 }
