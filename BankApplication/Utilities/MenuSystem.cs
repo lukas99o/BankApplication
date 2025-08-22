@@ -9,7 +9,7 @@ namespace BankApplication.Helpers
         public static int MenuInput(string[]? headers, string[] options, ConsoleColor? color)
         {
             if (options == null || options.Length == 0) throw new ArgumentException("Options måste innehålla minst ett element.");
-                
+
             int selectedIndex = 0;
             ConsoleKey key = ConsoleKey.NoName;
 
@@ -44,9 +44,17 @@ namespace BankApplication.Helpers
                 {
                     case ConsoleKey.UpArrow:
                         selectedIndex = (selectedIndex - 1 + options.Length) % options.Length;
+#pragma warning disable CA1416
+                        Console.Beep(900, 80);
+                        #pragma warning restore CA1416
+
                         break;
                     case ConsoleKey.DownArrow:
                         selectedIndex = (selectedIndex + 1) % options.Length;
+                        Console.Beep(700, 80);  // lite mörkare blip
+                        break;
+                    case ConsoleKey.Enter:
+                        Console.Beep(500, 200); // djupare pling som “godkänd”
                         break;
                 }
 
@@ -83,7 +91,6 @@ namespace BankApplication.Helpers
 
             Console.ResetColor();
         }
-
 
         public static void WriteCenteredX(string message)
         {
@@ -134,7 +141,7 @@ namespace BankApplication.Helpers
             int consoleHeight = Console.WindowHeight;
             int paddingY = (consoleHeight - headers) / 2;
 
-            for (int i = 2; i < paddingY; i++)
+            for (int i = 0; i < paddingY; i++)
             {
                 Console.WriteLine();
             }

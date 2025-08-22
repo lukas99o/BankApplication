@@ -1,4 +1,5 @@
 ﻿using BankApplication.Data;
+using BankApplication.Helpers;
 using BankApplication.Models;
 using BankApplication.Services.IServices;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +9,7 @@ namespace BankApplication.Services
     internal class FunService : IFunService
     {
         private ApplicationDbContext _context;
-
+        private static readonly Random _rng = new Random();
         public FunService(ApplicationDbContext context) 
         {
             _context = context;
@@ -16,127 +17,227 @@ namespace BankApplication.Services
 
         public void Gamble(int userId)
         {
-            var userAccounts = _context.BankAccounts
+            while (true)
+            {
+                var userAccounts = _context.BankAccounts
                 .Where(a => a.UserId == userId)
                 .ToList();
 
-            if (!userAccounts.Any())
-            {
-                Console.Clear();
-                Console.WriteLine("Du har inga konton att spela med.");
-                Console.Write("\nTryck på valfri tangent för att återgå till menyn... ");
-                Console.ReadKey();
-                return;
-            }
+                int choice = MenuSystem.MenuInput(
+                    new[] { "🎰 Välkommen till Spelautomaten! 🎰" },
+                    new[] { "Spela", "Avbryt" },
+                    null
+                );
+                if (choice == 1) return;
 
-            Console.Clear();
-            Console.WriteLine("\nVälj ett konto att spela från:");
-            foreach (var acc in userAccounts)
-            {
-                Console.WriteLine($"- {acc.Title} (Saldo: {acc.Balance:C})");
-            }
+                string[] accountStrings = userAccounts
+                    .Select(a => $"Titel: [{a.Title}] Kontosaldo: [{a.Balance:C}]")
+                    .Concat(new[] { "Avbryt" })
+                    .ToArray();
 
-            BankAccount? chosenAccount = null;
-            while (chosenAccount == null)
-            {
-                Console.Write("Ange kontonamn: ");
-                var input = Console.ReadLine();
-                chosenAccount = userAccounts.SingleOrDefault(a => a.Title.Equals(input, StringComparison.OrdinalIgnoreCase));
+                choice = MenuSystem.MenuInput(
+                    new[] { "🎰 Välj ett konto att spela från: 🎰" },
+                    accountStrings,
+                    null
+                );
 
-                if (chosenAccount == null)
-                    Console.WriteLine("Kontot hittades inte. Försök igen.");
-            }
+                if (choice == accountStrings.Length - 1)
+                {
+                    MenuSystem.MenuInput(
+                        new[] { "🎰 Avbröt spelautomaten 🎰" },
+                        new[] { "Meny" },
+                        null
+                    );
+                    return;
+                }
 
-            var random = new Random();
-
-            bool keepPlaying = true;
-            while (keepPlaying)
-            {
+                var chosenAccount = userAccounts[choice];
                 if (chosenAccount.Balance <= 0)
                 {
-                    Console.WriteLine("❌ Du har inte tillräckligt med saldo för att spela.");
-                    break;
+                    MenuSystem.MenuInput(
+                        new[] { "❌ Du har inte tillräckligt med saldo för att spela." },
+                        new[] { "Meny" },
+                        null
+                    );
+                    return;
                 }
 
-                decimal amount;
-                while (true)
+                var random = new Random();
+                bool keepPlaying = true;
+
+                while (keepPlaying)
                 {
-                    Console.Write("\nAnge summa att spela med: ");
-                    if (decimal.TryParse(Console.ReadLine(), out amount) && amount > 0 && amount <= chosenAccount.Balance)
-                        break;
+                    choice = MenuSystem.MenuInput(
+                        new[] { $"Titel: [{chosenAccount.Title}] Kontosaldo: [{chosenAccount.Balance:C}]", "Välj insättningsbelopp" },
+                        new[] { "100 kr", "200 kr", "500 kr", "1 000 kr", "2 000 kr",
+                                "5 000 kr", "10 000 kr", "Ange manuellt", "Avbryt" },
+                        null
+                    );
 
-                    Console.WriteLine("Ogiltigt belopp. Beloppet måste vara positivt och inte överstiga saldot.");
-                }
-
-                Console.Write($"Du spelar {amount:C}. Vill du fortsätta? (true/false): ");
-                if (!bool.TryParse(Console.ReadLine(), out bool confirm) || !confirm)
-                {
-                    Console.WriteLine("🎲 Spelet avbröts.");
-                    continue;
-                }
-
-                var odds = new List<(string Outcome, double Multiplier, int Chance)>
-                {
-                    ("JACKPOT", 10.0, 3),
-                    ("TRIPLE", 3.0, 11),
-                    ("DOUBLE", 2.0, 27),
-                    ("HALVE", 0.5, 50),
-                    ("ZERO", 0.0, 9)
-                };
-
-                int roll = random.Next(1, 101); 
-                int cumulative = 0;
-                string result = "ZERO";
-                double multiplier = 0;
-
-                foreach (var option in odds)
-                {
-                    cumulative += option.Chance;
-                    if (roll <= cumulative)
+                    if (choice == 8)
                     {
-                        result = option.Outcome;
-                        multiplier = option.Multiplier;
-                        break;
+                        MenuSystem.MenuInput(
+                            new[] { "🎰 Avbröt spelautomaten 🎰" },
+                            new[] { "Meny" },
+                            null
+                        );
+                        return;
                     }
+
+                    decimal amount = choice switch
+                    {
+                        0 => 100m,
+                        1 => 200m,
+                        2 => 500m,
+                        3 => 1000m,
+                        4 => 2000m,
+                        5 => 5000m,
+                        6 => 10000m,
+                        _ => 0m
+                    };
+
+                    if (choice == 7)
+                    {
+                        while (true)
+                        {
+                            MenuSystem.CenterY(8);
+                            MenuSystem.Header();
+                            MenuSystem.WriteCenteredXForeground("Tryck på [ESC] för att avbryta.", ConsoleColor.Green, false);
+                            MenuSystem.WriteCenteredXForeground("Ange insättningsbelopp att spela med: ", ConsoleColor.Yellow, true);
+                            string? input = MenuSystem.ReadNumberWithEscape();
+
+                            if (input == null)
+                            {
+                                MenuSystem.MenuInput(
+                                    new[] { "Insättning avbröts." },
+                                    new[] { "Meny" },
+                                    null
+                                );
+                                return;
+                            }
+
+                            if (input == "")
+                            {
+                                choice = MenuSystem.MenuInput(
+                                    new[] { "Beloppet kan inte vara tomt. Försök igen." },
+                                    new[] { "Försök igen", "Meny" },
+                                    ConsoleColor.Red
+                                );
+
+                                if (choice == 0) continue;
+                                return;
+                            }
+
+                            if (!decimal.TryParse(input, out amount) || amount <= 0)
+                            {
+                                choice = MenuSystem.MenuInput(
+                                    new[] { "Ogiltigt belopp. Försök igen." },
+                                    new[] { "Försök igen", "Meny" },
+                                    ConsoleColor.Red
+                                );
+                                if (choice == 0) continue;
+                                return;
+                            }
+
+                            break;
+                        }
+                    }
+
+                    if (amount > chosenAccount.Balance)
+                    {
+                        choice = MenuSystem.MenuInput(
+                            new[] { "❌ Du har inte tillräckligt med saldo för att spela." },
+                            new[] { "Försök igen", "Meny" },
+                            ConsoleColor.Red
+                        );
+                        if (choice == 1) return;
+                        continue;
+                    }
+
+                    choice = MenuSystem.MenuInput(
+                        new[] { $"🎰 Du har valt att spela med {amount:C} på kontot: {chosenAccount.Title} 🎰" },
+                        new[] { "Spela", "Avbryt" },
+                        null
+                    );
+
+                    if (choice == 1)
+                    {
+                        choice = MenuSystem.MenuInput(
+                            new[] { "🎰 Avbröt spelautomaten 🎰" },
+                            new[] { "Försök igen", "Meny" },
+                            null
+                        );
+                        if (choice == 0) continue;
+                        return;
+                    }
+
+                    var odds = new List<(string Outcome, decimal Multiplier, int Chance)>
+                    {
+                        ("JACKPOT", 10.0m, 3),
+                        ("TRIPLE", 3.0m, 11),
+                        ("DOUBLE", 2.0m, 27),
+                        ("HALVE", 0.5m, 50),
+                        ("ZERO", 0.0m, 9)
+                    };
+
+                    int total = odds.Sum(o => o.Chance);
+                    int roll = _rng.Next(0, total); 
+
+                    int acc = 0;
+                    string result = "ZERO";
+                    decimal multiplier = 0m;
+
+                    foreach (var o in odds)
+                    {
+                        acc += o.Chance;
+                        if (roll < acc)
+                        {
+                            result = o.Outcome;
+                            multiplier = o.Multiplier;
+                            break;
+                        }
+                    }
+
+                    decimal resultAmount = amount * (decimal)multiplier;
+                    decimal balanceChange = resultAmount - amount;
+                    chosenAccount.Balance += balanceChange;
+
+                    chosenAccount.Transactions.Add(new Transaction
+                    {
+                        Amount = Math.Abs(balanceChange),
+                        Date = DateTime.Now,
+                        Sender = balanceChange < 0,
+                        BankAccountTitle = chosenAccount.Title,
+                        Type = Transaction.TransactionType.Transfer,
+                        OtherBankAccountTitle = $"🎰 {result}",
+                        BankAccountId = chosenAccount.Id
+                    });
+                    _context.SaveChanges();
+                    
+                    string resultString = multiplier switch
+                    {
+                        10.0m => $"JACKPOT! 🎉 Du vann {balanceChange:C}! Nytt saldo: {chosenAccount.Balance:C}",
+                        3.0m => $"TRIPLE! 🎉 Du vann {balanceChange:C}! Nytt saldo: {chosenAccount.Balance:C}",
+                        2.0m => $"DOUBLE! 🎉 Du vann {balanceChange:C}! Nytt saldo: {chosenAccount.Balance:C}",
+                        0.5m => $"HALVE! 😢 Du förlorade hälften: {balanceChange:C}. Nytt saldo: {chosenAccount.Balance:C}",
+                        _ => $"ZERO! 😐 Du förlorade allt: {balanceChange:C}. Nytt saldo: {chosenAccount.Balance:C}"
+                    };
+
+                    choice = MenuSystem.MenuInput(
+                        new[] { $"Resultat: [{result}] [{multiplier}x]", resultString, "🎰 Vill du spela igen?" },
+                        new[] { "Ja", "Nej" },
+                        null
+                    );
+                    if (choice == 1) keepPlaying = false;
                 }
 
-                decimal resultAmount = amount * (decimal)multiplier;
-                decimal balanceChange = resultAmount - amount;
-
-                chosenAccount.Balance += balanceChange;
-
-                chosenAccount.Transactions.Add(new Transaction
-                {
-                    Amount = Math.Abs(balanceChange),
-                    Date = DateTime.Now,
-                    Sender = balanceChange < 0,
-                    BankAccountTitle = chosenAccount.Title,
-                    Type = Transaction.TransactionType.Transfer,
-                    OtherBankAccountTitle = $"🎰 {result}",
-                    BankAccountId = chosenAccount.Id
-                });
-
-                _context.SaveChanges();
-
-                Console.WriteLine($"\n🎲 Resultat: {result} ({multiplier}x)");
-
-                if (balanceChange > 0)
-                    Console.WriteLine($"🎉 Du vann {balanceChange:C}! Nytt saldo: {chosenAccount.Balance:C}");
-                else if (balanceChange < 0)
-                    Console.WriteLine($"😢 Du förlorade {-balanceChange:C}. Nytt saldo: {chosenAccount.Balance:C}");
-                else
-                    Console.WriteLine($"😐 Din insats var värdelös. Du förlorade hela beloppet. Nytt saldo: {chosenAccount.Balance:C}");
-
-                Console.Write("\n🎰 Vill du spela igen? (true/false): ");
-                if (!bool.TryParse(Console.ReadLine(), out keepPlaying) || !keepPlaying)
-                {
-                    Console.WriteLine("🎮 Tack för att du spelade!");
-                    break;
-                }
+                MenuSystem.MenuInput(
+                    new[] { "🎰 Tack för att du spelade! 🎰" },
+                    new[] { "Meny" },
+                    null
+                );
+                return;
             }
-
-            Console.WriteLine("\nTryck på valfri tangent för att återgå till menyn...");
-            Console.ReadKey();
         }
 
         public void Leaderboard(int userId)
@@ -149,37 +250,48 @@ namespace BankApplication.Services
                 .Select(user => new
                 {
                     user.Username,
-                    TotalBalance = user.Accounts.Sum(account => (double)account.Balance) 
+                    TotalBalance = user.Accounts.Sum(account => (double)account.Balance)
                 })
+                .OrderByDescending(u => u.TotalBalance)
                 .ToList();
 
-            if (!userBalances.Any())
+            bool keepViewing = true;
+            bool ascending = false;
+
+            while (keepViewing)
             {
-                Console.WriteLine("Inga användare med konton hittades.");
-                return;
+                var leaderboardStrings = new List<string>
+                {
+                    "🏆 Leaderboard 🏆",
+                    "Här är användarnas kontosaldon:"
+                };
+
+                int rank = 1;
+                foreach (var user in userBalances)
+                {
+                    leaderboardStrings.Add($"{rank}. {user.Username} – {user.TotalBalance:C}");
+                    rank++;
+                }
+
+                int choice = MenuSystem.MenuInput(
+                    leaderboardStrings.ToArray(),
+                    new[] { "Sortera", "Meny" },
+                    null
+                );
+
+                if (choice == 0)
+                {
+                    ascending = !ascending;
+                    userBalances = ascending
+                        ? userBalances.OrderBy(u => u.TotalBalance).ToList()
+                        : userBalances.OrderByDescending(u => u.TotalBalance).ToList();
+                }
+                else
+                {
+                    keepViewing = false;
+                }
             }
-
-            Console.WriteLine("Vill du sortera från högst till lägst? (true/false): ");
-            var input = Console.ReadLine();
-
-            bool descending = true;
-            if (bool.TryParse(input, out bool result))
-            {
-                descending = result;
-            }
-
-            var sortedUsers = descending
-                ? userBalances.OrderByDescending(u => u.TotalBalance)
-                : userBalances.OrderBy(u => u.TotalBalance);
-
-            Console.WriteLine($"\nLeaderboard ({(descending ? "Högst till Lägst" : "Lägst till Högst")}):");
-            foreach (var user in sortedUsers)
-            {
-                Console.WriteLine($"{user.Username}: {user.TotalBalance:C}");
-            }
-
-            Console.WriteLine("\nTryck på valfri tangent för att fortsätta...");
-            Console.ReadKey();
         }
+
     }
 }

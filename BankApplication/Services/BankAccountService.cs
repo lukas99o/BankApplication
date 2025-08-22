@@ -24,8 +24,8 @@ namespace BankApplication.Services
                 .Where(b => b.UserId == userId)
                 .ToList();
 
-            var accountStrings = bankAccounts
-                .Select(a => $"Titel: [{a.Title}] Kontosaldo: [{a.Balance} kr] ID: [{a.Id}]")
+            var accountStrings = new[] { "Konton:" }
+                .Concat(bankAccounts.Select(a => $"Titel: [{a.Title}] Kontosaldo: [{a.Balance} kr] ID: [{a.Id}]"))
                 .ToArray();
 
             MenuSystem.MenuInput(
@@ -54,7 +54,8 @@ namespace BankApplication.Services
 
             while (true)
             {
-                MenuSystem.CenterY(2);
+                MenuSystem.CenterY(9);
+                MenuSystem.Header();
                 MenuSystem.WriteAllCenteredXForeground(
                     new[] { "SKAPA KONTO", "Tryck på [ESC] för att avbryta.", "" },
                     ConsoleColor.Green
@@ -129,7 +130,7 @@ namespace BankApplication.Services
                 if (userAccounts.Count == 1)
                 {
                     MenuSystem.MenuInput(
-                        new[] { "Du kan inte ta bort alla konton." },
+                        new[] { "Du har 1 konto du kan inte ta bort alla konton." },
                         new[] { "Meny" },
                         null
                     );
@@ -263,7 +264,8 @@ namespace BankApplication.Services
                 {
                     while (true)
                     {
-                        MenuSystem.CenterY(2);
+                        MenuSystem.CenterY(8);
+                        MenuSystem.Header();
                         MenuSystem.WriteCenteredXForeground("Tryck på [ESC] för att avbryta.", ConsoleColor.Green, false);
                         MenuSystem.WriteCenteredXForeground("Ange insättningsbelopp: ", ConsoleColor.Yellow, true);
                         string? input = MenuSystem.ReadNumberWithEscape();
@@ -413,7 +415,8 @@ namespace BankApplication.Services
                 {
                     while (true)
                     {
-                        MenuSystem.CenterY(2);
+                        MenuSystem.CenterY(8);
+                        MenuSystem.Header();
                         MenuSystem.WriteCenteredXForeground("Tryck på [ESC] för att avbryta.", ConsoleColor.Green, false);
                         MenuSystem.WriteCenteredXForeground("Ange uttagsbelopp: ", ConsoleColor.Yellow, true);
                         string? input = MenuSystem.ReadNumberWithEscape();
@@ -548,6 +551,10 @@ namespace BankApplication.Services
                         if (choice == 0)
                         {
                             CreateAccount(userId);
+
+                            userAccounts = _context.BankAccounts
+                                .Where(b => b.UserId == userId)
+                                .ToList();
                         }
                         else
                         {
@@ -583,7 +590,7 @@ namespace BankApplication.Services
                         null
                     );
 
-                    if (toChoice == accountStrings.Length - 1)
+                    if (toChoice == accountStrings.Length - 2)
                     {
                         MenuSystem.MenuInput(
                             new[] { "Överföring avbruten." },
@@ -626,7 +633,6 @@ namespace BankApplication.Services
                     {
                         MenuSystem.CenterY(8);
                         MenuSystem.Header();
-
                         MenuSystem.WriteCenteredXForeground("Tryck på [ESC] för att avbryta.", ConsoleColor.Green, false);
                         MenuSystem.WriteCenteredXForeground("Ange ID för mottagarens konto: ", ConsoleColor.Yellow, true);
                         string? input = MenuSystem.ReadNumberWithEscape();
@@ -665,6 +671,7 @@ namespace BankApplication.Services
 
                         toAccount = _context.BankAccounts
                             .Include(b => b.Transactions)
+                            .Include(b => b.User)
                             .FirstOrDefault(a => a.Id == toAccountId);
 
                         if (toAccount == null)
@@ -694,6 +701,12 @@ namespace BankApplication.Services
                 decimal amount = 0;
                 while (true)
                 {
+                    Console.Clear();
+                    MenuSystem.CenterY(11);
+                    MenuSystem.Header();
+                    MenuSystem.WriteCenteredXForeground($"Från: Title: [{fromAccount!.Title}] Kontosaldo [{fromAccount.Balance}]", ConsoleColor.Green, false);
+                    MenuSystem.WriteCenteredXForeground($"Till: Title: [{toAccount!.Title}] ID: [{toAccount.Id}]      ", ConsoleColor.Green, false);
+                    Console.WriteLine();
                     MenuSystem.WriteCenteredXForeground("Tryck på [ESC] för att avbryta.", ConsoleColor.Green, false);
                     MenuSystem.WriteCenteredXForeground("Ange överföringsbelopp: ", ConsoleColor.Yellow, true);
                     string? input = MenuSystem.ReadNumberWithEscape();
@@ -746,7 +759,7 @@ namespace BankApplication.Services
                 }
 
                 int confirmChoice = MenuSystem.MenuInput(
-                    new[] { $"Du skrev in {amount:C}", $"Vill du bekräfta överföringen från '{fromAccount.Title}' till '{toAccount!.Title}'?" },
+                    new[] { $"Du skrev in {amount:C}", $"Vill du bekräfta överföringen från '{fromAccount.Title}' till '{toAccount!.Title}' ID: [{toAccount.Id}]?" },
                     new[] { "Ja", "Nej" },
                     null
                 );
@@ -767,36 +780,39 @@ namespace BankApplication.Services
                         Type = Transaction.TransactionType.Transfer
                     };
                     fromAccount.Transactions.Add(transferFrom);
-
-                    var transferTo = new Transaction
-                    {
-                        Amount = amount,
-                        Date = DateTime.UtcNow,
-                        Sender = false,
-                        BankAccountTitle = fromAccount.Title,
-                        OtherBankAccountTitle = toAccount.Title,
-                        BankAccountId = toAccount.Id,
-                        Type = Transaction.TransactionType.Transfer
-                    };
-                    toAccount.Transactions.Add(transferTo);
-
                     _context.SaveChanges();
 
-                    MenuSystem.MenuInput(
-                        new[] { $"✅ Överföringen lyckades! {amount:C} har överförts från '{fromAccount.Title}' till '{toAccount.Title}'.",
-                                $"- Nytt saldo på '{fromAccount.Title}': {fromAccount.Balance:C}",
-                                $"- Nytt saldo på '{toAccount.Title}': {toAccount.Balance:C}" },
-                        new[] { "Meny" },
-                        null
-                    );
+                    if (toAccount.User!.Id == userId)
+                    {
+                        MenuSystem.MenuInput(
+                            new[] { $"✅ Överföringen lyckades! {amount:C} har överförts från '{fromAccount.Title}' till '{toAccount.Title}'.",
+                                    $"- Nytt saldo på '{fromAccount.Title}': {fromAccount.Balance:C}",
+                                    $"- Nytt saldo på '{toAccount.Title}': {toAccount.Balance:C}" },
+                            new[] { "Meny" },
+                            null
+                        );
+                    }
+                    else
+                    {
+                        MenuSystem.MenuInput(
+                            new[] { $"✅ Överföringen lyckades! {amount:C} har överförts från '{fromAccount.Title}' till '{toAccount.Title}' ID: [{toAccount.Id}].",
+                                    $"- Nytt saldo på '{fromAccount.Title}': {fromAccount.Balance:C}",
+                                    $"- Nytt saldo på '{toAccount.Title}' ID: [{toAccount.Id}]" },
+                            new[] { "Meny" },
+                            null
+                        );
+                    }
+                    return;
                 }
                 else
                 {
-                    MenuSystem.MenuInput(
+                    int choice = MenuSystem.MenuInput(
                         new[] { "❌ Överföringen avbröts." },
-                        new[] { "Meny" },
+                        new[] { "Försök igen", "Meny" },
                         null
                     );
+                    if (choice == 0) continue;
+                    return;
                 }
             }
         }
@@ -852,7 +868,7 @@ namespace BankApplication.Services
             }
 
             int choice = MenuSystem.MenuInput(
-                new[] { "VISA TRANSAKTIONER", "Dina transaktioner:", "" }
+                new[] { "KONTOUTDRAG", "Dina transaktioner:", "" }
                     .Concat(transactionData)
                     .ToArray(),
                 new[] { "Meny" },

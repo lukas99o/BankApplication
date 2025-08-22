@@ -29,32 +29,17 @@ namespace BankApplication
         public void Run()
         {
             _db.Database.Migrate();
-            LoginMenu();
-
-            userBankAccounts = _db.BankAccounts
-                    .Where(b => b.UserId == user!.Id)
-                    .ToList();
 
             while (true)
             {
-                if (userBankAccounts.Count() == 0)
-                {
-                    bool account = _bankAccountService.CreateAccount(user!.Id);
+                LoginMenu();
 
-                    if (account)
-                    {
-                        MainMenu();
-                    }
-                    else
-                    {
-                        LoginMenu();
-                    }
-                }
-                else
-                {
-                    MainMenu();
-                    LoginMenu();
-                }
+                userBankAccounts = _db.BankAccounts
+                    .Where(b => b.UserId == user!.Id)
+                    .ToList();
+                if (userBankAccounts.Count() == 0) _bankAccountService.CreateAccount(user!.Id);
+
+                MainMenu();
             }
         }
 
@@ -90,9 +75,9 @@ namespace BankApplication
             while (user != null)
             {
                 int choice = MenuSystem.MenuInput(
-                    new[] { "RETRO BANK 3000", $"Inloggad som: {user.Username}", "Välj ett av alternativen:" },
-                    new[] { "Visa konton", "Insättning", "Utdrag", "Överförning", "Visa transaktioner",
-                            "Skapa konto", "Radera konto", "Visa leaderboard", "Gamble", "Logga ut"
+                    new[] { $"Inloggad som: {user.Username}", "Välj ett av alternativen:" },
+                    new[] { "Konton", "Insättning", "Uttag", "Överföring", "Kontoutdrag",
+                            "Skapa konto", "Radera konto", "Leaderboard", "Gamble", "Logga ut"
                           },
                     null
                 );
