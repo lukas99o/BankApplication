@@ -1,6 +1,6 @@
 ﻿using BankApplication.Models;
 using System.Text;
-using static System.Net.Mime.MediaTypeNames;
+#pragma warning disable CA1416
 
 namespace BankApplication.Helpers
 {
@@ -44,20 +44,16 @@ namespace BankApplication.Helpers
                 {
                     case ConsoleKey.UpArrow:
                         selectedIndex = (selectedIndex - 1 + options.Length) % options.Length;
-#pragma warning disable CA1416
                         Console.Beep(900, 80);
-                        #pragma warning restore CA1416
-
                         break;
                     case ConsoleKey.DownArrow:
                         selectedIndex = (selectedIndex + 1) % options.Length;
-                        Console.Beep(700, 80);  // lite mörkare blip
+                        Console.Beep(700, 80);
                         break;
                     case ConsoleKey.Enter:
-                        Console.Beep(500, 200); // djupare pling som “godkänd”
+                        Console.Beep(500, 200);
                         break;
                 }
-
             } while (key != ConsoleKey.Enter);
 
             Console.Clear();
@@ -116,7 +112,7 @@ namespace BankApplication.Helpers
             {
                 Console.WriteLine(paddingSpaces + message);
             }
-                
+
             Console.ResetColor();
         }
 
@@ -147,40 +143,11 @@ namespace BankApplication.Helpers
             }
         }
 
-        public static string? ReadLineWithEscape()
-        {
-            var buffer = new StringBuilder();
-
-            while (true)
-            {
-                var key = Console.ReadKey(intercept: true);
-
-                if (key.Key == ConsoleKey.Enter)
-                {
-                    Console.WriteLine();
-                    return buffer.ToString();
-                }
-                else if (key.Key == ConsoleKey.Escape)
-                {
-                    Console.WriteLine();
-                    return null;
-                }
-                else if (key.Key == ConsoleKey.Backspace && buffer.Length > 0)
-                {
-                    buffer.Remove(buffer.Length - 1, 1);
-                    Console.Write("\b \b");
-                }
-                else
-                {
-                    buffer.Append(key.KeyChar);
-                    Console.Write(key.KeyChar);
-                }
-            }
-        }
-
         public static string? ReadNumberWithEscape()
         {
             var buffer = new StringBuilder();
+            int startLeft = Console.CursorLeft;
+            int startTop = Console.CursorTop;
 
             while (true)
             {
@@ -188,23 +155,76 @@ namespace BankApplication.Helpers
 
                 if (key.Key == ConsoleKey.Enter)
                 {
+                    Console.Beep(500, 150); 
                     Console.WriteLine();
                     return buffer.ToString();
                 }
                 else if (key.Key == ConsoleKey.Escape)
                 {
+                    Console.Beep(300, 150); 
                     Console.WriteLine();
                     return null;
                 }
-                else if (key.Key == ConsoleKey.Backspace && buffer.Length > 0)
+                else if (key.Key == ConsoleKey.Backspace)
                 {
-                    buffer.Remove(buffer.Length - 1, 1);
-                    Console.Write("\b \b");
+                    if (buffer.Length > 0)
+                    {
+                        buffer.Remove(buffer.Length - 1, 1);
+                        Console.SetCursorPosition(startLeft + buffer.Length, startTop);
+                        Console.Write(' ');
+                        Console.SetCursorPosition(startLeft + buffer.Length, startTop);
+                        Console.Beep(400, 80); 
+                    }
                 }
                 else if (char.IsDigit(key.KeyChar))
                 {
                     buffer.Append(key.KeyChar);
+                    Console.SetCursorPosition(startLeft + buffer.Length - 1, startTop);
                     Console.Write(key.KeyChar);
+                    Console.Beep(700, 80); 
+                }
+            }
+        }
+
+        public static string? ReadLineWithEscape()
+        {
+            var buffer = new StringBuilder();
+            int startLeft = Console.CursorLeft;
+            int startTop = Console.CursorTop;
+
+            while (true)
+            {
+                var key = Console.ReadKey(intercept: true);
+
+                if (key.Key == ConsoleKey.Enter)
+                {
+                    Console.Beep(500, 150); 
+                    Console.WriteLine();
+                    return buffer.ToString();
+                }
+                else if (key.Key == ConsoleKey.Escape)
+                {
+                    Console.Beep(300, 150); 
+                    Console.WriteLine();
+                    return null;
+                }
+                else if (key.Key == ConsoleKey.Backspace)
+                {
+                    if (buffer.Length > 0)
+                    {
+                        buffer.Remove(buffer.Length - 1, 1);
+                        Console.SetCursorPosition(startLeft + buffer.Length, startTop);
+                        Console.Write(' ');
+                        Console.SetCursorPosition(startLeft + buffer.Length, startTop);
+                        Console.Beep(400, 80);
+                    }
+                }
+                else
+                {
+                    buffer.Append(key.KeyChar);
+                    Console.SetCursorPosition(startLeft + buffer.Length - 1, startTop);
+                    Console.Write(key.KeyChar);
+                    Console.Beep(700, 80); 
                 }
             }
         }
@@ -217,7 +237,7 @@ namespace BankApplication.Helpers
                     null
                 );
 
-            if (choice == 0) 
+            if (choice == 0)
             {
                 MenuSystem.MenuInput(
                     new[] { "Tack för att du använde RetroBank 3000!", "Vi hoppas du haft en trevlig upplevelse!" },
@@ -239,7 +259,7 @@ namespace BankApplication.Helpers
                 null
             );
 
-            if (choice == 0) 
+            if (choice == 0)
             {
                 MenuSystem.MenuInput(
                     new[] { "Du har nu loggats ut." },
@@ -252,7 +272,7 @@ namespace BankApplication.Helpers
             return user;
         }
 
-        public static void Header() 
+        public static void Header()
         {
             string[] banner = new[]
             {
@@ -265,6 +285,41 @@ namespace BankApplication.Helpers
             };
 
             MenuSystem.WriteAllCenteredXForeground(banner, ConsoleColor.Green);
+        }
+
+        public static void PlayMenuIntro()
+        {
+            if (!OperatingSystem.IsWindows()) return;
+
+            var melody = new (int freq, int duration)[]
+            {
+                (659, 100), (659, 100), (0, 50), (659, 100), (0, 50),
+                (523, 100), (659, 100), (0, 100), (784, 100), (0, 150),
+
+                (392, 100), (523, 100), (392, 100), (330, 100), (440, 100),
+                (494, 100), (466, 100), (440, 100), (392, 100),
+
+                (1047, 80), (0, 50), (1047, 80), (0, 50), (1047, 80), (0, 50),
+
+                (784, 120), (659, 120), (523, 120),
+
+                (523, 80), (659, 80), (784, 80), (880, 80),
+                (1047, 100), (880, 100), (784, 100), (659, 100),
+                (523, 100)
+            };
+
+            foreach (var note in melody)
+            {
+                if (note.freq == 0)
+                    System.Threading.Thread.Sleep(note.duration);
+                else
+                    Console.Beep(note.freq, note.duration);
+            }
+        }
+
+        public static void PlayMenuIntroAsync()
+        {
+            Task.Run(() => PlayMenuIntro());
         }
     }
 }

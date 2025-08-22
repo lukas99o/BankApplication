@@ -3,9 +3,6 @@ using BankApplication.Helpers;
 using BankApplication.Models;
 using BankApplication.Services.IServices;
 using Microsoft.EntityFrameworkCore;
-using System.Numerics;
-using System.Reflection.Metadata.Ecma335;
-using System.Security.Principal;
 
 namespace BankApplication.Services
 {

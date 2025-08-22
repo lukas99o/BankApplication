@@ -29,9 +29,11 @@ namespace BankApplication
         public void Run()
         {
             _db.Database.Migrate();
+            MenuSystem.PlayMenuIntroAsync();
 
             while (true)
             {
+                
                 LoginMenu();
 
                 userBankAccounts = _db.BankAccounts
