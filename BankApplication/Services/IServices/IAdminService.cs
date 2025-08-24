@@ -6,7 +6,11 @@ using System.Threading.Tasks;
 
 namespace BankApplication.Services.IServices
 {
-    internal class IAdminService
+    internal interface IAdminService
     {
+        void GetAllUsers();
+        void GetAllBankAccounts();
+        void EditUserName();
+        void DeleteUser();
     }
 }

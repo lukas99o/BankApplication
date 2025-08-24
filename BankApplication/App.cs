@@ -12,18 +12,20 @@ namespace BankApplication
         private readonly IAccountService _accountService;
         private readonly IBankAccountService _bankAccountService;
         private readonly IFunService _funService;
+        private readonly IAdminService _adminService;
         private User? user;
         private DateTime? lockoutUntil;
         private int tries = 3;
         private int failedAttempts = 0;
         private List<BankAccount> userBankAccounts = new();
 
-        public App(ApplicationDbContext db, IAccountService accountService, IBankAccountService bankAccountService, IFunService funService)
+        public App(ApplicationDbContext db, IAccountService accountService, IBankAccountService bankAccountService, IFunService funService, IAdminService adminService)
         {
             _db = db;
             _accountService = accountService;
             _bankAccountService = bankAccountService;
             _funService = funService;
+            _adminService = adminService;
         }
 
         public void Run()
@@ -33,7 +35,6 @@ namespace BankApplication
 
             while (true)
             {
-                
                 LoginMenu();
 
                 userBankAccounts = _db.BankAccounts
@@ -51,7 +52,7 @@ namespace BankApplication
             {
                 int choice = MenuSystem.MenuInput(
                     new string[] { "VÄLKOMMEN TILL RETROBANK 3000!", "Välj ett av alternativen:" }, 
-                    new string[] { "Logga in", "Registrera", "Avsluta" }, 
+                    new string[] { "Logga in", "Registrera", "Admin", "Avsluta" }, 
                     null
                 );
 
@@ -66,6 +67,10 @@ namespace BankApplication
                         break;
 
                     case 2:
+                        AdminMenu();
+                        break;
+
+                    case 3:
                         MenuSystem.ExitApplication();
                         break;
                 }
@@ -115,6 +120,40 @@ namespace BankApplication
                         break;
                     case 9:
                         user = MenuSystem.LogOut(user);
+                        break;
+                }
+            }
+        }
+
+        public void AdminMenu()
+        {
+            _adminService.Login();
+
+            bool exit = false;
+            while (exit)
+            {
+                int choice = MenuSystem.MenuInput(
+                    new[] { "Administratörsmeny", "Välj ett av alternativen:" },
+                    new[] { "Visa alla användare", "Visa alla bankkonton", "Ändra användarnamn", "Ta bort användare", "Avsluta" },
+                    null
+                );
+
+                switch (choice)
+                {
+                    case 0:
+                        _adminService.GetAllUsers();
+                        break;
+                    case 1:
+                        _adminService.GetAllBankAccounts();
+                        break;
+                    case 2:
+                        _adminService.EditUserName();
+                        break;
+                    case 3:
+                        _adminService.DeleteUser();
+                        break;
+                    case 4:
+                        MenuSystem.AdminLogOut(exit);
                         break;
                 }
             }

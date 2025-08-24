@@ -28,6 +28,7 @@ namespace BankApplication
                     services.AddScoped<IAccountService, AccountService>();
                     services.AddScoped<IBankAccountService, BankAccountService>();
                     services.AddScoped<IFunService, FunService>();
+                    services.AddScoped<IAdminService, AdminService>();
                     services.AddTransient<App>();
                 })
                 .Build();

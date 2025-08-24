@@ -272,6 +272,25 @@ namespace BankApplication.Helpers
             return user;
         }
 
+        public static void AdminLogOut(bool exit)
+        {
+            int choice = MenuSystem.MenuInput(
+                new[] { "LOGGA UT", "Är du säker på att du vill logga ut som administratör?" },
+                new[] { "Ja", "Nej" },
+                null
+            );
+
+            if (choice == 0)
+            {
+                MenuSystem.MenuInput(
+                    new[] { "Du har nu loggats ut som administratör." },
+                    new[] { "Fortsätt" },
+                    null
+                );
+                exit = true;
+            }
+        }   
+
         public static void Header()
         {
             string[] banner = new[]
