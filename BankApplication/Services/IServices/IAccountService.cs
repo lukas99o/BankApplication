@@ -4,7 +4,7 @@ namespace BankApplication.Services.IServices
 {
     internal interface IAccountService
     {
-        (User? user, DateTime? lockoutUntil, int tries, int failedAttempts) Login(DateTime? lockoutUntil, int tries, int failedAttempts);
+        (User? user, DateTime? lockoutUntil, int tries, int failedAttempts) Login(DateTime? lockoutUntil, int tries, int failedAttempts, bool admin);
         void Register();
     }
 }

@@ -15,7 +15,7 @@ namespace BankApplication.Services
             _context = context;            
         }
 
-        public (User? user, DateTime? lockoutUntil, int tries, int failedAttempts) Login(DateTime? lockoutUntil, int tries, int failedAttempts)
+        public (User? user, DateTime? lockoutUntil, int tries, int failedAttempts) Login(DateTime? lockoutUntil, int tries, int failedAttempts, bool admin)
         {
             if (lockoutUntil.HasValue && lockoutUntil.Value > DateTime.Now)
             {
@@ -142,6 +142,57 @@ namespace BankApplication.Services
                     }
                 }
 
+                if (admin && user.Username != "admin")
+                {
+                    tries--;
+                    if (tries == 0)
+                    {
+                        failedAttempts++;
+                        if (failedAttempts > 3) failedAttempts = 3;
+
+                        lockoutUntil = failedAttempts switch
+                        {
+                            1 => DateTime.Now.AddMinutes(1),
+                            2 => DateTime.Now.AddMinutes(5),
+                            3 => DateTime.Now.AddMinutes(15),
+                            _ => DateTime.Now.AddMinutes(15)
+                        };
+
+                        MenuSystem.MenuInput(
+                            new[] { $"Du skrev fel admin-användarnamn tre gånger. Du är nu låst till {lockoutUntil:T}." },
+                            new[] { "Meny" },
+                            ConsoleColor.Red
+                        );
+
+                        tries = 3;
+                        return (null, lockoutUntil, tries, failedAttempts);
+                    }
+                    else
+                    {
+                        int choice = MenuSystem.MenuInput(
+                            new[] { "Endast admin-användaren kan logga in här." },
+                            new[] { "Försök igen", "Meny" },
+                            ConsoleColor.Red
+                        );
+                        if (choice == 0) continue;
+
+                        return (null, null, tries, failedAttempts);
+                    }
+                        
+                }
+
+                if (!admin && user.Username == "admin")
+                {
+                    int choice = MenuSystem.MenuInput(
+                        new[] { "Admin-användaren kan inte logga in till bank-menyn." },
+                        new[] { "Försök igen", "Meny" },
+                        null
+                    );
+                    if (choice == 0) continue;
+
+                    return (null, null, tries, failedAttempts);
+                }
+
                 tries = 3;
                 failedAttempts = 0;
                 return (user, null, tries, failedAttempts);
@@ -186,6 +237,13 @@ namespace BankApplication.Services
                 if (_context.Users.Any(u => u.Username == username))
                 {
                     if (MenuSystem.MenuInput(new[] { "Användarnamnet finns redan. Välj ett annat." }, new[] { "Försök igen", "Meny" }, ConsoleColor.Red) == 0)
+                        continue;
+                    return;
+                }
+
+                if (username.ToLower() == "admin")
+                {
+                    if (MenuSystem.MenuInput(new[] { "Användarnamnet 'admin' är reserverat. Välj ett annat." }, new[] { "Försök igen", "Meny" }, ConsoleColor.Red) == 0)
                         continue;
                     return;
                 }

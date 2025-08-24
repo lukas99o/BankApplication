@@ -155,13 +155,13 @@ namespace BankApplication.Helpers
 
                 if (key.Key == ConsoleKey.Enter)
                 {
-                    Console.Beep(500, 150); 
+                    Console.Beep(500, 150);
                     Console.WriteLine();
                     return buffer.ToString();
                 }
                 else if (key.Key == ConsoleKey.Escape)
                 {
-                    Console.Beep(300, 150); 
+                    Console.Beep(300, 150);
                     Console.WriteLine();
                     return null;
                 }
@@ -173,7 +173,7 @@ namespace BankApplication.Helpers
                         Console.SetCursorPosition(startLeft + buffer.Length, startTop);
                         Console.Write(' ');
                         Console.SetCursorPosition(startLeft + buffer.Length, startTop);
-                        Console.Beep(400, 80); 
+                        Console.Beep(400, 80);
                     }
                 }
                 else if (char.IsDigit(key.KeyChar))
@@ -181,7 +181,7 @@ namespace BankApplication.Helpers
                     buffer.Append(key.KeyChar);
                     Console.SetCursorPosition(startLeft + buffer.Length - 1, startTop);
                     Console.Write(key.KeyChar);
-                    Console.Beep(700, 80); 
+                    Console.Beep(700, 80);
                 }
             }
         }
@@ -198,13 +198,13 @@ namespace BankApplication.Helpers
 
                 if (key.Key == ConsoleKey.Enter)
                 {
-                    Console.Beep(500, 150); 
+                    Console.Beep(500, 150);
                     Console.WriteLine();
                     return buffer.ToString();
                 }
                 else if (key.Key == ConsoleKey.Escape)
                 {
-                    Console.Beep(300, 150); 
+                    Console.Beep(300, 150);
                     Console.WriteLine();
                     return null;
                 }
@@ -224,7 +224,7 @@ namespace BankApplication.Helpers
                     buffer.Append(key.KeyChar);
                     Console.SetCursorPosition(startLeft + buffer.Length - 1, startTop);
                     Console.Write(key.KeyChar);
-                    Console.Beep(700, 80); 
+                    Console.Beep(700, 80);
                 }
             }
         }
@@ -272,7 +272,7 @@ namespace BankApplication.Helpers
             return user;
         }
 
-        public static void AdminLogOut(bool exit)
+        public static void AdminLogOut(User? admin)
         {
             int choice = MenuSystem.MenuInput(
                 new[] { "LOGGA UT", "Är du säker på att du vill logga ut som administratör?" },
@@ -287,9 +287,9 @@ namespace BankApplication.Helpers
                     new[] { "Fortsätt" },
                     null
                 );
-                exit = true;
+                admin = null;
             }
-        }   
+        }
 
         public static void Header()
         {
@@ -339,6 +339,85 @@ namespace BankApplication.Helpers
         public static void PlayMenuIntroAsync()
         {
             Task.Run(() => PlayMenuIntro());
+        }
+
+        public static void Bonus()
+        {
+            Console.Clear();
+            Random rnd = new Random();
+
+            string title = "ＲＥＴＲＯ  ＢＡＮＫ  ３０００";
+            string subtitle = "💰 The Future of Banking... in the Past 💾";
+
+            for (int i = 0; i < 6; i++)
+            {
+                Console.Clear();
+
+                if (i == 5) MenuSystem.CenterY(2);
+                else MenuSystem.CenterY(1);
+
+                Console.ForegroundColor = (ConsoleColor)rnd.Next(1, 16);
+                MenuSystem.WriteCenteredX(title);
+                Thread.Sleep(200);
+            }
+
+            Console.ResetColor();
+            MenuSystem.WriteCenteredXForeground(subtitle, ConsoleColor.Yellow, false);
+            Thread.Sleep(800);
+
+            string[] vaultFrames =
+            {
+                "[██████████]",
+                "[▓▓▓▓▓▓▓▓▓▓]",
+                "[▒▒▒▒▒▒▒▒▒▒]",
+                "[░░░░░░░░░░]",
+                "[          ]"
+            };
+
+            foreach (string frame in vaultFrames)
+            {
+                Console.Clear();
+                MenuSystem.CenterY(2);
+                MenuSystem.WriteCenteredX("💾 ACCESSING VAULT... 💾");
+                Console.WriteLine();
+                MenuSystem.WriteCenteredXForeground(frame, ConsoleColor.Cyan, false);
+                Console.Beep(200 + rnd.Next(100, 800), 120);
+                Thread.Sleep(300);
+            }
+
+            Console.Clear();
+            MenuSystem.CenterY(20);
+            MenuSystem.WriteCenteredX("💰 WELCOME TO RETRO BANK 3000 💰");
+            MenuSystem.WriteCenteredXForeground("You are now... RICH!", ConsoleColor.Green, false);
+            Thread.Sleep(500);
+
+            string[] coins = { "$", "€", "💰" };
+
+            for (int i = 0; i < 20; i++)
+            {
+                Console.ForegroundColor = (ConsoleColor)rnd.Next(1, 16);
+                string line = "";
+                for (int j = 0; j < 50; j++)
+                {
+                    line += (rnd.Next(0, 5) == 0) ? coins[rnd.Next(coins.Length)] : " ";
+                }
+                MenuSystem.WriteCenteredX(line);
+                Console.ResetColor();
+                Thread.Sleep(100);
+            }
+
+            int[] victory = { 523, 659, 784, 1046, 1318, 1046, 784, 659, 523 };
+            foreach (var note in victory)
+            {
+                Console.Beep(note, 120);
+                Thread.Sleep(50);
+            }
+
+            MenuSystem.MenuInput(
+                new[] { "🎉 Du överlevde Retro Bank 3000 Bonusrum 🎉" },
+                new[] { "Meny" },
+                null
+            );
         }
     }
 }

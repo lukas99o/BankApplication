@@ -3,6 +3,7 @@ using BankApplication.Models;
 using BankApplication.Services.IServices;
 using Microsoft.EntityFrameworkCore;
 using BankApplication.Helpers;
+using BankApplication.Utilities;
 
 namespace BankApplication
 {
@@ -31,6 +32,7 @@ namespace BankApplication
         public void Run()
         {
             _db.Database.Migrate();
+            SeedAdmin.Init(_db);
             MenuSystem.PlayMenuIntroAsync();
 
             while (true)
@@ -40,9 +42,16 @@ namespace BankApplication
                 userBankAccounts = _db.BankAccounts
                     .Where(b => b.UserId == user!.Id)
                     .ToList();
-                if (userBankAccounts.Count() == 0) _bankAccountService.CreateAccount(user!.Id);
 
-                MainMenu();
+                if (userBankAccounts.Count() == 0)
+                {
+                    if (_bankAccountService.CreateAccount(user!.Id) == true) MainMenu();
+                    else user = null; 
+                }
+                else
+                {
+                    MainMenu();
+                }
             }
         }
 
@@ -52,14 +61,14 @@ namespace BankApplication
             {
                 int choice = MenuSystem.MenuInput(
                     new string[] { "VÄLKOMMEN TILL RETROBANK 3000!", "Välj ett av alternativen:" }, 
-                    new string[] { "Logga in", "Registrera", "Admin", "Avsluta" }, 
+                    new string[] { "Logga in", "Registrera", "Admin", "Bonus", "Avsluta" }, 
                     null
                 );
 
                 switch (choice)
                 {
                     case 0:
-                        (user, lockoutUntil, tries, failedAttempts) = _accountService.Login(lockoutUntil, tries, failedAttempts);
+                        (user, lockoutUntil, tries, failedAttempts) = _accountService.Login(lockoutUntil, tries, failedAttempts, false);
                         break;
 
                     case 1:
@@ -71,6 +80,10 @@ namespace BankApplication
                         break;
 
                     case 3:
+                        MenuSystem.Bonus();
+                        break;
+
+                    case 4:
                         MenuSystem.ExitApplication();
                         break;
                 }
@@ -127,10 +140,9 @@ namespace BankApplication
 
         public void AdminMenu()
         {
-            _adminService.Login();
+            (user, lockoutUntil, tries, failedAttempts) = _accountService.Login(lockoutUntil, tries, failedAttempts, true);
 
-            bool exit = false;
-            while (exit)
+            while (user != null)
             {
                 int choice = MenuSystem.MenuInput(
                     new[] { "Administratörsmeny", "Välj ett av alternativen:" },
@@ -153,7 +165,7 @@ namespace BankApplication
                         _adminService.DeleteUser();
                         break;
                     case 4:
-                        MenuSystem.AdminLogOut(exit);
+                        MenuSystem.AdminLogOut(user);
                         break;
                 }
             }

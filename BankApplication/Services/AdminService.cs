@@ -184,7 +184,7 @@ namespace BankApplication.Services
                 .Select(a => $"ID: [{a.Id}] | Titel: [{a.Title}] | Kontosaldo: [{a.Balance:C}] | Användar-ID: [{a.UserId}]")
                 .ToArray();
 
-            accountStrings = new[] { "ALLA BANKKONTON" }.Concat(accountStrings).ToArray();
+            accountStrings = new[] { "ALLA BANKKONTON", "" }.Concat(accountStrings).ToArray();
 
             MenuSystem.MenuInput(
                 accountStrings,
@@ -211,7 +211,7 @@ namespace BankApplication.Services
                 .Select(u => $"ID: [{u.Id}] | Namn: [{u.Username}]")
                 .ToArray();
 
-            userStrings = new[] { "ANVÄNDARE" }.Concat(userStrings).ToArray();
+            userStrings = new[] { "ANVÄNDARE", "" }.Concat(userStrings).ToArray();
 
             MenuSystem.MenuInput(
                 userStrings,
