@@ -2,58 +2,55 @@
   <img width="320" alt="Retro Bank 3000 Logo" src="https://github.com/user-attachments/assets/f2fad855-9c00-443e-950b-c38456930d65" />
 </p>
 
-# 🎮 Introduktion
-Retro Bank 3000 är en .NET Console Bank Application med SQLite-databas.  
-Jag skapade detta projekt för att förbättra på den ursprungliga versionen som jag och mitt team utvecklade under mina studier på **Chas Academy**.  
+# 🎮 Introduction
+Retro Bank 3000 is a .NET Console Bank Application with an SQLite database.  
+I created this project to improve on the original version that me and my team developed during my studies at **Chas Academy**.  
 
 ---
 
-## 🚀 Bakgrund  
-Det första projektet vi byggde hjälpte oss att:  
-- Lära oss grunderna i databaser  
-- Förstå hur man arbetar med **Code-First Database Principles**  
-- Utveckla funktioner och **återanvändbar kod**  
+## 🚀 Background  
+The first project we built helped us to:  
+- Learn the basics of databases  
+- Understand how to work with **Code-First Database Principles**  
+- Develop features and **reusable code**  
 
-
-
-Efteråt kände jag en stark passion för att förbättra projektet, särskilt efter att några andra studenter visade vad som faktiskt var möjligt i en ren **CMD Console-applikation**.  
+Afterwards I felt a strong passion to improve the project, especially after some other students showed what was actually possible in a pure **CMD Console application**.  
 
 ---
 
-## 🛠️ Vad jag har lärt mig i detta projekt  
-I Retro Bank 3000 har jag:  
-- Fördjupat min förståelse för **kodåteranvändning** (en funktion används över **50 gånger** i projektet).  
-- Arbetat med **SQLiteDb** för att förstå fler databaskoncept.  
-  - Valet av SQLite passade perfekt med tanke på storleken och enkelheten i databasen som behövdes.  
-- Utforskat vad som är möjligt med **Console-klassen i .NET**, bland annat:  
-  - `Console.Beep()` → för att producera ljud  
-  - `Console.ForegroundColor` & `Console.BackgroundColor` → för att färglägga text och bakgrund  
-- Byggt ett eget menysystem som:  
-  - Låter användaren navigera med **piltangenter** och **Enter**  
-  - Alltid centrerar text i konsolen (via `CenterY` och `CenterX` funktioner)  
-- Lärt mig att **hasha lösenord på ett säkert sätt** genom att implementera en egen `PasswordHash`-klass som använder:  
-  - **Salt** för att förhindra rainbow table-attacker  
-  - **Hashing (SHA-256/512)** för att skydda lösenorden  
+## 🛠️ What I have learned in this project  
+In Retro Bank 3000 I have:  
+- Deepened my understanding of **code reusability** (a function is used over **50 times** in the project).  
+- Worked with **SQLiteDb** to understand more database concepts.  
+  - The choice of SQLite was perfect considering the size and simplicity of the database that was needed.  
+- Explored what is possible with the **Console class in .NET**, among others:  
+  - `Console.Beep()` → to produce sounds  
+  - `Console.ForegroundColor` & `Console.BackgroundColor` → to color text and background  
+- Built my own menu system that:  
+  - Lets the user navigate with **arrow keys** and **Enter**  
+  - Always centers text in the console (via `CenterY` and `CenterX` functions)  
+- Learned how to **hash passwords securely** by implementing my own `PasswordHash` class that uses:  
+  - **Salt** to prevent rainbow table attacks  
+  - **Hashing (SHA-256/512)** to protect the passwords  
 
 ---
 
 ## 🎲 Features  
-Projektet innehåller både seriösa och lite roliga funktioner:  
+The project contains both serious and fun features:  
 
-✅ **Bankfunktionalitet** – konton, insättningar, uttag, transaktioner  
-✅ **Registrering & Inloggning** – med lösenordshantering (**hashing + salt**)  
-✅ **Admin-meny** – särskilda funktioner för administratörer  
-✅ **Casino/Gambling-funktion** – chans att vinna eller förlora virtuella pengar  
-✅ **Leaderboard** – jämför dina resultat med andra användare  
-✅ **Bonus Room** 🎉 – en del av applikationen med animationer och effekter  
+✅ **Bank functionality** – accounts, deposits, withdrawals, transactions  
+✅ **Registration & Login** – with password management (**hashing + salt**)  
+✅ **Admin menu** – special features for administrators  
+✅ **Casino/Gambling feature** – chance to win or lose virtual money  
+✅ **Leaderboard** – compare your results with other users  
+✅ **Bonus Room** 🎉 – a part of the application with animations and effects  
 
 ---
 
 ## 📦 Installation & Setup  
-1. Klona repot till din dator  
-2. Öppna projektet i **Visual Studio**  
-3. Använd **NuGet Package Manager Console** och kör:  
+1. Clone the repo to your computer  
+2. Open the project in **Visual Studio**  
+3. Use **NuGet Package Manager Console** and run:  
 
    ```powershell
    update-database
-   ```
