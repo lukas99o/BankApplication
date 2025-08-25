@@ -13,11 +13,6 @@ namespace BankApplication.Services
             _context = context;
         }
 
-        public void Login()
-        {
-
-        }
-
         public void DeleteUser()
         {
             while (true)

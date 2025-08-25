@@ -272,7 +272,7 @@ namespace BankApplication.Helpers
             return user;
         }
 
-        public static void LogOut(User? admin)
+        public static User? AdminLogOut(User admin)
         {
             int choice = MenuSystem.MenuInput(
                 new[] { "LOGGA UT", "Är du säker på att du vill logga ut som administratör?" },
@@ -287,8 +287,10 @@ namespace BankApplication.Helpers
                     new[] { "Fortsätt" },
                     null
                 );
-                admin = null;
+                return null;
             }
+
+            return admin;
         }
 
         public static void Header()
