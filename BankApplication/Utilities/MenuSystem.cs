@@ -272,7 +272,7 @@ namespace BankApplication.Helpers
             return user;
         }
 
-        public static void AdminLogOut(User? admin)
+        public static void LogOut(User? admin)
         {
             int choice = MenuSystem.MenuInput(
                 new[] { "LOGGA UT", "Är du säker på att du vill logga ut som administratör?" },
@@ -346,7 +346,7 @@ namespace BankApplication.Helpers
             Console.Clear();
             Random rnd = new Random();
 
-            string title = "ＲＥＴＲＯ  ＢＡＮＫ  ３０００";
+            string title = "ＲＥＴＲＯ  ＢＡＮＫ  3 0 0 0";
             string subtitle = "💰 The Future of Banking... in the Past 💾";
 
             for (int i = 0; i < 6; i++)

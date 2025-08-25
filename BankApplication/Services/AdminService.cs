@@ -22,6 +22,7 @@ namespace BankApplication.Services
         {
             while (true)
             {
+                Console.Clear();
                 MenuSystem.CenterY(8);
                 MenuSystem.Header();
                 MenuSystem.WriteCenteredXForeground("RADERA ANVÄNDARE", ConsoleColor.Green, false);
@@ -44,14 +45,14 @@ namespace BankApplication.Services
                 {
                     int choice = MenuSystem.MenuInput(
                             new[] { "Ogiltig inmatning. Försök igen." },
-                            new[] { "Försök", "Meny" },
+                            new[] { "Försök igen", "Meny" },
                             null
                         );
                     if (choice == 0) continue;
                     return;
                 }
 
-                if (!int.TryParse(input, out int userId))
+                if (int.TryParse(input, out int userId))
                 {
                     var user = _context.Users.Find(userId);
 
@@ -75,7 +76,19 @@ namespace BankApplication.Services
                             new[] { "Meny" },
                             null
                         );
+
+                        return;
                     }
+                }
+                else
+                {
+                    int choice = MenuSystem.MenuInput(
+                            new[] { "Ogiltig inmatning. Försök igen." },
+                            new[] { "Försök igen", "Meny" },
+                            null
+                        );
+                    if (choice == 0) continue;
+                    return;
                 }
             }
         }
@@ -84,6 +97,7 @@ namespace BankApplication.Services
         {
             while (true)
             {
+                Console.Clear();
                 MenuSystem.CenterY(8);
                 MenuSystem.Header();
                 MenuSystem.WriteCenteredXForeground("ÄNDRA ANVÄNDARNAMN", ConsoleColor.Green, false);
@@ -106,14 +120,14 @@ namespace BankApplication.Services
                 {
                     int choice = MenuSystem.MenuInput(
                             new[] { "Ogiltig inmatning. Försök igen." },
-                            new[] { "Försök", "Meny" },
+                            new[] { "Försök igen", "Meny" },
                             null
                         );
                     if (choice == 0) continue;
                     return;
                 }
 
-                if (!int.TryParse(input, out int userId))
+                if (int.TryParse(input, out int userId))
                 {
                     var user = _context.Users.Find(userId);
 
@@ -162,6 +176,16 @@ namespace BankApplication.Services
                         );
                         return;
                     }
+                }
+                else
+                {
+                    int choice = MenuSystem.MenuInput(
+                            new[] { "Ogiltig inmatning. Försök igen." },
+                            new[] { "Försök igen", "Meny" },
+                            null
+                        );
+                    if (choice == 0) continue;
+                    return;
                 }
             }
         }
