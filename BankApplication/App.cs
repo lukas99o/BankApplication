@@ -165,7 +165,7 @@ namespace BankApplication
                         _adminService.DeleteUser();
                         break;
                     case 4:
-                        MenuSystem.AdminLogOut(user);
+                        user = MenuSystem.AdminLogOut(user);
                         break;
                 }
             }
